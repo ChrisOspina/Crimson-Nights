@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Unity 6 (6000.3.6f1) first-person gothic action game. The design doc is `gameplan.md` (the game is titled "The Crimson Museum" there; the project folder is "Crimson Nights"). Development is in **Phase 1 — Prototype** (combat prototype with cube enemies is built), aiming at the first milestone: *walk into the Grand Gallery, fight a vampire, dodge its attack, shoot it, kill it, keep exploring.* The design doc prefers simple, modular systems (ScriptableObjects for weapons/enemies, NavMesh for enemies) over complex architecture, and keeps scope deliberately small. Check proposed features against its vertical-slice and scope rules.
 
-Git repository (branch `master`). `.gitignore` excludes Unity's generated folders (`Library/`, `Temp/`, `Logs/`, `UserSettings/`, IDE files). `.gitattributes` routes audio, textures, models, fonts, video and PDFs through **Git LFS**, so new binary types need an LFS rule added there before they're committed. Always commit `.meta` files alongside their assets. No assembly definitions and no tests yet, so all scripts compile into `Assembly-CSharp`.
+Git repository (branch `main`, remote `origin` = github.com/ChrisOspina/Crimson-Nights). `.gitignore` excludes Unity's generated folders (`Library/`, `Temp/`, `Logs/`, `UserSettings/`, IDE files). `.gitattributes` routes audio, textures, models, fonts, video and PDFs through **Git LFS**, so new binary types need an LFS rule added there before they're committed. Always commit `.meta` files alongside their assets. No assembly definitions and no tests yet, so all scripts compile into `Assembly-CSharp`.
 
 ## Building / running
 
