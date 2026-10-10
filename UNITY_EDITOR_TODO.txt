@@ -1,0 +1,66 @@
+CRIMSON NIGHTS - UNITY EDITOR TODO (Phase 1 combat prototype)
+==============================================================
+
+SETUP (do these once, in order)
+-------------------------------
+[ ] 1. Open Unity and wait for scripts to finish compiling (spinner bottom-right).
+[ ] 2. Check the Console (Window > General > Console) has no red errors.
+[ ] 3. Exit Play Mode if you're in it.
+[ ] 4. Click: Tools > Crimson Nights > Build Prototype Arena
+       - If asked to save the current scene, choose Save (or Don't Save if it's junk).
+[ ] 5. Check the Console for "[PrototypeArenaBuilder] Prototype arena built into Assets/Scenes/SampleScene.unity"
+       - A yellow warning about a layer "already named" means layer 8 or 9 was taken. Tell Claude.
+[ ] 6. In the Hierarchy, confirm SampleScene now has:
+       - PrototypeArena (Geometry, SpawnPoints, EnemySpawner)
+       - PlayerCapsule
+       - PlayerFollowCamera
+       - Main Camera (should now have a CinemachineBrain component)
+       - Plane (disabled / greyed out - that's expected)
+[ ] 7. Select PlayerCapsule and confirm the Inspector shows no "Missing (Script)" entries.
+
+PLAYTEST (press Play, click in the Game view to lock the mouse)
+-----------------------------------------------------------------
+[ ] Mouse look and WASD movement work, sprint with Shift (there is no jump)
+[ ] Footstep sounds still play (land sound plays when dropping off the platform)
+[ ] Health bar shows bottom-left, ammo "6 / 6" bottom-right, small crosshair in the centre
+[ ] Left click fires: tracer + muzzle flash, ammo counts down
+[ ] R reloads ("RELOADING" shows); firing the last bullet auto-reloads
+[ ] After ~1.5 s, 3 red cubes spawn and chase you
+[ ] Shooting a cube flashes it white and pushes it back slightly; 3 shots kill it
+[ ] Cube flashes YELLOW before it hits you - hitting it during the flash cancels the attack
+[ ] Getting hit: red screen flash, health bar drops (15 per hit)
+[ ] Space tap: quick blade swing; 3 swings kill a cube
+[ ] Space hold: crosshair turns orange and blade pulls back; release for a heavy hit with big knockback (2 kill)
+[ ] Clear a wave: next wave (5, then 7) starts ~3 s later
+[ ] Let yourself die: "YOU DIED" appears and the scene restarts after 2 s
+[ ] Ramp onto the platform works; enemies can follow you up
+
+IF SOMETHING'S WRONG
+--------------------
+[ ] Enemies don't move: look for NavMesh warnings in the Console.
+[ ] Clicking does nothing: click inside the Game view first so the cursor locks.
+[ ] Screen is black / no camera: check Main Camera has CinemachineBrain and PlayerFollowCamera exists.
+[ ] Blade or gun looks badly placed: select PlayerCapsule > PlayerCameraRoot >
+    RevolverViewmodel / BladeViewmodel and move them; then apply the prefab override
+    (Overrides dropdown at the top of the Inspector > Apply All).
+[ ] Copy any red Console errors and send them to Claude.
+
+TUNING (optional, after the first playtest)
+-------------------------------------------
+[ ] Assets/Data/Weapons/Revolver.asset - damage, fire rate, magazine size, reload time
+[ ] Assets/Data/Weapons/RelicBlade.asset - light/heavy damage, reach, cooldowns, heavy hold time
+[ ] Assets/Data/Enemies/VampireThrall_Proto.asset - health, speed, wind-up time, damage
+[ ] PrototypeArena > EnemySpawner - wave sizes, delay between waves
+[ ] PlayerCapsule > MeleeWeapon - WindUpEuler / SwingEndEuler swing poses
+    (Data assets change live even in Play Mode and keep their values after you stop.
+     Component values changed in Play Mode are lost when you stop.)
+
+NOTES
+-----
+- Re-running "Build Prototype Arena" rebuilds the arena and player but keeps your
+  data assets, materials and enemy prefab. Delete one of those to regenerate it.
+- Hand-made changes inside PrototypeArena are wiped on re-run - tell Claude so the
+  builder can be updated instead.
+- Don't re-import the Starter Assets package: it would overwrite the local edits
+  (jump removal, Fire/Melee/Reload inputs).
+- Save the scene (Ctrl+S) after any manual changes.
