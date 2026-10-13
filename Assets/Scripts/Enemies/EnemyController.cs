@@ -22,6 +22,7 @@ public class EnemyController : MonoBehaviour
 	private Health _health;
 	private Transform _player;
 	private Health _playerHealth;
+	private PlayerDodge _playerDodge;
 
 	private float _stateTimer;
 	private float _repathTimer;
@@ -63,6 +64,7 @@ public class EnemyController : MonoBehaviour
 		{
 			_player = player.transform;
 			_playerHealth = player.GetComponent<Health>();
+			_playerDodge = player.GetComponent<PlayerDodge>();
 		}
 
 		// the NavMesh is baked at runtime, so snap onto it now
@@ -109,7 +111,8 @@ public class EnemyController : MonoBehaviour
 				if (_stateTimer <= 0f)
 				{
 					Strike();
-					Enter(State.Recover);
+					// a perfect dodge staggers us from inside Strike()
+					if (CurrentState == State.WindUp) Enter(State.Recover);
 				}
 				break;
 
@@ -147,15 +150,28 @@ public class EnemyController : MonoBehaviour
 	{
 		if (_player == null || _playerHealth == null) return;
 
+		float reach = Data.AttackRange + Data.AttackReachGrace;
+		if (_playerDodge != null && _playerDodge.TryPerfectDodge(this, reach, Data.AttackAngle)) return;
+
 		Vector3 toPlayer = _player.position - transform.position;
 		toPlayer.y = 0f;
-		bool inRange = toPlayer.magnitude <= Data.AttackRange + Data.AttackReachGrace;
+		bool inRange = toPlayer.magnitude <= reach;
 		bool inFront = Vector3.Angle(transform.forward, toPlayer) <= Data.AttackAngle;
 
 		if (inRange && inFront)
 		{
 			_playerHealth.TakeDamage(new DamageInfo(Data.AttackDamage, _player.position, toPlayer.normalized, 0f, gameObject));
+			if (Data.AttackHitClip != null) AudioSource.PlayClipAtPoint(Data.AttackHitClip, transform.position);
 		}
+	}
+
+	// staggers for at least `duration`; never shortens a stagger already running (e.g. a long perfect-dodge stagger)
+	public void Stagger(float duration)
+	{
+		if (CurrentState == State.Dead) return;
+		float remaining = CurrentState == State.Stagger ? _stateTimer : 0f;
+		Enter(State.Stagger);
+		_stateTimer = Mathf.Max(remaining, duration);
 	}
 
 	private void OnDamaged(DamageInfo info)
@@ -166,7 +182,7 @@ public class EnemyController : MonoBehaviour
 		push.y = 0f;
 		_knockback += push.normalized * (info.Knockback * Data.KnockbackScale);
 
-		if (!_health.IsDead) Enter(State.Stagger);
+		if (!_health.IsDead) Stagger(Data.StaggerTime);
 	}
 
 	private void OnDied()

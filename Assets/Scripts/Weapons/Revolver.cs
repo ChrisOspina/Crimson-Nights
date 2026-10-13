@@ -4,6 +4,7 @@ using StarterAssets;
 using UnityEngine;
 
 // Hitscan revolver. Fires from the centre of the screen, reloads with R or automatically when empty.
+// Reloads draw from a limited reserve, which ammo pickups refill.
 [RequireComponent(typeof(StarterAssetsInputs))]
 public class Revolver : MonoBehaviour
 {
@@ -15,14 +16,17 @@ public class Revolver : MonoBehaviour
 
 	public int Ammo { get; private set; }
 	public int MagazineSize => Data.MagazineSize;
+	public int ReserveAmmo { get; private set; }
+	public int MaxReserveAmmo => Data.MaxReserveAmmo;
 	public bool IsReloading { get; private set; }
 
-	// raised whenever Ammo or IsReloading changes (for the HUD)
+	// raised whenever Ammo, ReserveAmmo or IsReloading changes (for the HUD)
 	public event Action Changed;
 
 	private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
 	private StarterAssetsInputs _input;
+	private PlayerDodge _dodge;
 	private Transform _camera;
 	private AudioSource _audioSource;
 	private float _nextFireTime;
@@ -37,11 +41,13 @@ public class Revolver : MonoBehaviour
 	private void Awake()
 	{
 		_input = GetComponent<StarterAssetsInputs>();
+		_dodge = GetComponent<PlayerDodge>();
 		_audioSource = gameObject.AddComponent<AudioSource>();
 		_audioSource.playOnAwake = false;
 		_audioSource.spatialBlend = 0f;
 
 		Ammo = Data.MagazineSize;
+		ReserveAmmo = Mathf.Min(Data.StartingReserveAmmo, Data.MaxReserveAmmo);
 
 		if (Viewmodel != null)
 		{
@@ -69,7 +75,9 @@ public class Revolver : MonoBehaviour
 		if (IsReloading && Time.time >= _reloadEndTime)
 		{
 			IsReloading = false;
-			Ammo = Data.MagazineSize;
+			int loaded = Mathf.Min(Data.MagazineSize - Ammo, ReserveAmmo);
+			Ammo += loaded;
+			ReserveAmmo -= loaded;
 			Changed?.Invoke();
 		}
 
@@ -114,10 +122,12 @@ public class Revolver : MonoBehaviour
 			Health health = hit.collider.GetComponentInParent<Health>();
 			if (health != null)
 			{
-				health.TakeDamage(new DamageInfo(Data.Damage, hit.point, direction, Data.Knockback, gameObject));
+				float damage = Data.Damage * (_dodge != null ? _dodge.DamageMultiplier : 1f);
+				health.TakeDamage(new DamageInfo(damage, hit.point, direction, Data.Knockback, gameObject));
 			}
 
 			SpawnImpact(hit.point, health != null ? new Color(1f, 0.2f, 0.2f) : new Color(1f, 0.85f, 0.5f));
+			if (Data.ImpactClip != null) AudioSource.PlayClipAtPoint(Data.ImpactClip, hit.point);
 		}
 
 		SpawnTracer(Muzzle != null ? Muzzle.position : origin, end);
@@ -130,12 +140,26 @@ public class Revolver : MonoBehaviour
 
 	private void StartReload()
 	{
-		if (IsReloading || Ammo >= Data.MagazineSize) return;
+		if (IsReloading || Ammo >= Data.MagazineSize || ReserveAmmo <= 0) return;
 
 		IsReloading = true;
 		_reloadEndTime = Time.time + Data.ReloadTime;
 		PlayClip(Data.ReloadClip);
 		Changed?.Invoke();
+	}
+
+	// Adds spare rounds up to the reserve limit and returns how many were taken
+	public int AddReserveAmmo(int amount)
+	{
+		int added = Mathf.Clamp(Data.MaxReserveAmmo - ReserveAmmo, 0, Mathf.Max(0, amount));
+		if (added == 0) return 0;
+
+		ReserveAmmo += added;
+		Changed?.Invoke();
+
+		// picked up ammo with an empty gun: load it straight away
+		if (Ammo <= 0) StartReload();
+		return added;
 	}
 
 	private void UpdateViewmodel()

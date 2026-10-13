@@ -33,4 +33,4 @@ MonoBehaviour:
     HitDelay: 0.1
     Cooldown: 1
   SwingClip: {fileID: 0}
-  HitClip: {fileID: 0}
+  HitClip: {fileID: 8300000, guid: 8ac6b2bfe3cf6a644aac4e9ceb5870e6, type: 3}

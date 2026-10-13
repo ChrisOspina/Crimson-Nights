@@ -5,6 +5,8 @@ using UnityEngine;
 public class Health : MonoBehaviour
 {
 	public float MaxHealth = 100f;
+	[Tooltip("While true, incoming damage is ignored (dodge i-frames)")]
+	public bool Invulnerable;
 
 	public float Current { get; private set; }
 	public bool IsDead { get; private set; }
@@ -21,7 +23,7 @@ public class Health : MonoBehaviour
 
 	public void TakeDamage(DamageInfo info)
 	{
-		if (IsDead || info.Amount <= 0f) return;
+		if (IsDead || Invulnerable || info.Amount <= 0f) return;
 
 		Current = Mathf.Max(0f, Current - info.Amount);
 		Damaged?.Invoke(info);

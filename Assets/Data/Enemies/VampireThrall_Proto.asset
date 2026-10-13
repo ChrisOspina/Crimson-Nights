@@ -24,6 +24,7 @@ MonoBehaviour:
   RecoverTime: 0.8
   StaggerTime: 0.25
   KnockbackScale: 1
+  AttackHitClip: {fileID: 8300000, guid: 4ec1edd89ea2e844f86900c51b795c63, type: 3}
   BodyColor: {r: 0.45, g: 0.05, b: 0.08, a: 1}
   TelegraphColor: {r: 1, g: 0.85, b: 0.1, a: 1}
   HitFlashColor: {r: 1, g: 1, b: 1, a: 1}

@@ -19,6 +19,8 @@ namespace StarterAssets
 		public bool melee;
 		[Tooltip("Set on press; cleared by the weapon that consumes it")]
 		public bool reload;
+		[Tooltip("Set on press; cleared by PlayerDodge when it consumes it")]
+		public bool dodge;
 
 		[Header("Movement Settings")]
 		public bool analogMovement;
@@ -60,6 +62,11 @@ namespace StarterAssets
 		{
 			ReloadInput(value.isPressed);
 		}
+
+		public void OnDodge(InputValue value)
+		{
+			DodgeInput(value.isPressed);
+		}
 #endif
 
 
@@ -92,6 +99,11 @@ namespace StarterAssets
 		public void ReloadInput(bool newReloadState)
 		{
 			if (newReloadState) reload = true;
+		}
+
+		public void DodgeInput(bool newDodgeState)
+		{
+			if (newDodgeState) dodge = true;
 		}
 		
 		private void OnApplicationFocus(bool hasFocus)

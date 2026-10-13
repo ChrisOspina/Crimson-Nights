@@ -625,6 +625,7 @@ GameObject:
   - component: {fileID: 7743823451206290613}
   - component: {fileID: 2362310786942302803}
   - component: {fileID: 6870128582344027888}
+  - component: {fileID: 8270828919081022263}
   m_Layer: 8
   m_Name: PlayerCapsule
   m_TagString: Player
@@ -690,9 +691,7 @@ MonoBehaviour:
   SprintSpeed: 6
   RotationSpeed: 1
   SpeedChangeRate: 10
-  JumpHeight: 1.2
   Gravity: -15
-  JumpTimeout: 0.1
   FallTimeout: 0.15
   Grounded: 1
   GroundedOffset: -0.14
@@ -734,7 +733,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   move: {x: 0, y: 0}
   look: {x: 0, y: 0}
-  jump: 0
   sprint: 0
   fire: 0
   melee: 0
@@ -857,12 +855,10 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 703249131b8f67a40a33727365a14d5f, type: 3}
   - {fileID: 8300000, guid: a8a0260d13fbe164bae4812e010a0000, type: 3}
   - {fileID: 8300000, guid: 43c55341c79556c4696f9924e7a62c09, type: 3}
-  JumpClip: {fileID: 8300000, guid: 230f8201bb3dc744b87d32d6e7403385, type: 3}
   LandClip: {fileID: 8300000, guid: 8d46fc4c026333b4994caa187b7730d4, type: 3}
   StrideLength: 2
   MinStepSpeed: 0.5
   FootstepVolume: 0.5
-  JumpVolume: 0.6
   LandVolume: 0.6
   MinAirTimeForLand: 0.25
   PitchVariation: 0.1
@@ -938,3 +934,21 @@ MonoBehaviour:
   HealthColor: {r: 0.75, g: 0.08, b: 0.1, a: 1}
   CrosshairColor: {r: 1, g: 1, b: 1, a: 0.85}
   HeavyReadyColor: {r: 1, g: 0.6, b: 0.2, a: 1}
+  EmptyAmmoColor: {r: 0.9, g: 0.25, b: 0.2, a: 1}
+--- !u!114 &8270828919081022263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8616685848737228372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c918af434c434e888471039420ddb06b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LowHealthBreathing
+  BreathingClip: {fileID: 8300000, guid: cc271fd730e41984c97e8fddd3773c1b, type: 3}
+  Threshold: 0.35
+  MinVolume: 0.25
+  MaxVolume: 0.8
+  FadeSpeed: 0.6

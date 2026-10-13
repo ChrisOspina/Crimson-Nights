@@ -8,15 +8,21 @@ public class PlayerHUD : MonoBehaviour
 	public Color HealthColor = new Color(0.75f, 0.08f, 0.1f);
 	public Color CrosshairColor = new Color(1f, 1f, 1f, 0.85f);
 	public Color HeavyReadyColor = new Color(1f, 0.6f, 0.2f, 1f);
+	public Color EmptyAmmoColor = new Color(0.9f, 0.25f, 0.2f, 1f);
+	public Color CounterColor = new Color(0.55f, 0.85f, 1f, 1f);
+	public Color PerfectDodgeFlashColor = new Color(0.75f, 0.9f, 1f, 1f);
 
 	private Health _health;
 	private Revolver _revolver;
 	private MeleeWeapon _melee;
+	private PlayerDodge _dodge;
 
 	private RectTransform _healthFill;
 	private Text _ammoText;
 	private Image _crosshair;
 	private Image _damageFlash;
+	private Color _flashColor;
+	private RectTransform _dodgeCooldownFill;
 	private Text _deathText;
 	private float _flashAlpha;
 
@@ -25,6 +31,7 @@ public class PlayerHUD : MonoBehaviour
 		_health = GetComponent<Health>();
 		_revolver = GetComponent<Revolver>();
 		_melee = GetComponent<MeleeWeapon>();
+		_dodge = GetComponent<PlayerDodge>();
 		BuildUI();
 	}
 
@@ -33,6 +40,7 @@ public class PlayerHUD : MonoBehaviour
 		_health.Damaged += OnDamaged;
 		_health.Healed += RefreshHealth;
 		if (_revolver != null) _revolver.Changed += RefreshAmmo;
+		if (_dodge != null) _dodge.PerfectDodged += OnPerfectDodged;
 	}
 
 	private void OnDisable()
@@ -40,6 +48,7 @@ public class PlayerHUD : MonoBehaviour
 		_health.Damaged -= OnDamaged;
 		_health.Healed -= RefreshHealth;
 		if (_revolver != null) _revolver.Changed -= RefreshAmmo;
+		if (_dodge != null) _dodge.PerfectDodged -= OnPerfectDodged;
 	}
 
 	private void Start()
@@ -52,12 +61,18 @@ public class PlayerHUD : MonoBehaviour
 	{
 		if (_flashAlpha > 0f)
 		{
-			_flashAlpha = Mathf.MoveTowards(_flashAlpha, 0f, Time.deltaTime * 1.5f);
-			_damageFlash.color = new Color(0.6f, 0f, 0f, _flashAlpha);
+			_flashAlpha = Mathf.MoveTowards(_flashAlpha, 0f, Time.unscaledDeltaTime * 1.5f);
+			_damageFlash.color = new Color(_flashColor.r, _flashColor.g, _flashColor.b, _flashAlpha);
 		}
 
+		// dodge cooldown: a thin bar under the crosshair that empties as the dodge recharges
+		float cooldown = _dodge != null && _dodge.enabled ? _dodge.CooldownRemaining01 : 0f;
+		_dodgeCooldownFill.parent.gameObject.SetActive(cooldown > 0f);
+		_dodgeCooldownFill.anchorMax = new Vector2(cooldown, 1f);
+
 		bool heavyReady = _melee != null && _melee.enabled && _melee.IsHeavyReady;
-		_crosshair.color = heavyReady ? HeavyReadyColor : CrosshairColor;
+		bool counter = _dodge != null && _dodge.IsCounterWindow;
+		_crosshair.color = heavyReady ? HeavyReadyColor : counter ? CounterColor : CrosshairColor;
 		float size = heavyReady ? 12f : 6f;
 		_crosshair.rectTransform.sizeDelta = Vector2.Lerp(_crosshair.rectTransform.sizeDelta, new Vector2(size, size), Time.deltaTime * 20f);
 	}
@@ -71,7 +86,14 @@ public class PlayerHUD : MonoBehaviour
 	private void OnDamaged(DamageInfo info)
 	{
 		_flashAlpha = 0.45f;
+		_flashColor = new Color(0.6f, 0f, 0f);
 		RefreshHealth();
+	}
+
+	private void OnPerfectDodged(EnemyController attacker)
+	{
+		_flashAlpha = 0.35f;
+		_flashColor = PerfectDodgeFlashColor;
 	}
 
 	private void RefreshHealth()
@@ -86,7 +108,9 @@ public class PlayerHUD : MonoBehaviour
 			_ammoText.text = "";
 			return;
 		}
-		_ammoText.text = _revolver.IsReloading ? "RELOADING" : $"{_revolver.Ammo} / {_revolver.MagazineSize}";
+		_ammoText.text = _revolver.IsReloading ? "RELOADING" : $"{_revolver.Ammo} / {_revolver.ReserveAmmo}";
+		// red when there's nothing left to load
+		_ammoText.color = _revolver.ReserveAmmo == 0 && !_revolver.IsReloading ? EmptyAmmoColor : Color.white;
 	}
 
 	private void BuildUI()
@@ -111,6 +135,15 @@ public class PlayerHUD : MonoBehaviour
 		// crosshair
 		_crosshair = CreateImage("Crosshair", root, CrosshairColor);
 		_crosshair.rectTransform.sizeDelta = new Vector2(6f, 6f);
+
+		// dodge cooldown bar, just under the crosshair
+		Image cooldownBack = CreateImage("DodgeCooldown", root, new Color(0f, 0f, 0f, 0.5f));
+		cooldownBack.rectTransform.anchoredPosition = new Vector2(0f, -22f);
+		cooldownBack.rectTransform.sizeDelta = new Vector2(40f, 4f);
+		Image cooldownFill = CreateImage("Fill", cooldownBack.rectTransform, new Color(1f, 1f, 1f, 0.8f));
+		_dodgeCooldownFill = cooldownFill.rectTransform;
+		Stretch(_dodgeCooldownFill);
+		cooldownBack.gameObject.SetActive(false);
 
 		// health bar, bottom left
 		Image healthBack = CreateImage("HealthBar", root, new Color(0f, 0f, 0f, 0.6f));

@@ -24,7 +24,7 @@
         <mxCell id="pi" value="&lt;b&gt;PlayerInput&lt;/b&gt;&lt;br&gt;Behavior: Send Messages&lt;br&gt;&lt;i&gt;StarterAssets.inputactions&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="230" y="140" width="180" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sai" value="&lt;b&gt;StarterAssetsInputs&lt;/b&gt;&lt;br&gt;On&amp;lt;Action&amp;gt; handlers&lt;br&gt;move · look · sprint&lt;br&gt;fire · melee · reload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="sai" value="&lt;b&gt;StarterAssetsInputs&lt;/b&gt;&lt;br&gt;On&amp;lt;Action&amp;gt; handlers&lt;br&gt;move · look · sprint&lt;br&gt;fire · melee · reload · dodge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="450" y="140" width="190" height="90" as="geometry" />
         </mxCell>
         <mxCell id="fpc" value="&lt;b&gt;FirstPersonController&lt;/b&gt; &lt;i&gt;(locally modified)&lt;/i&gt;&lt;br&gt;Update: ApplyGravity → GroundedCheck → Move&lt;br&gt;LateUpdate: CameraRotation&lt;br&gt;Grounded = sphere check vs GroundLayers&lt;br&gt;&lt;i&gt;no jumping&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
@@ -101,7 +101,7 @@
         <mxCell id="combat" value="Combat systems (also on PlayerCapsule) + enemies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;arcSize=3;" vertex="1" parent="1">
           <mxGeometry x="20" y="580" width="1140" height="330" as="geometry" />
         </mxCell>
-        <mxCell id="rev" value="&lt;b&gt;Revolver&lt;/b&gt;&lt;br&gt;hitscan from Camera.main&lt;br&gt;6 rounds · R / auto reload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="rev" value="&lt;b&gt;Revolver&lt;/b&gt;&lt;br&gt;hitscan from Camera.main&lt;br&gt;6 rounds + reserve · R / auto reload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="620" width="180" height="80" as="geometry" />
         </mxCell>
         <mxCell id="mel" value="&lt;b&gt;MeleeWeapon&lt;/b&gt;&lt;br&gt;tap = light · hold = heavy&lt;br&gt;OverlapSphere on Enemy layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
@@ -130,6 +130,18 @@
         </mxCell>
         <mxCell id="spawn" value="&lt;b&gt;EnemySpawner&lt;/b&gt;&lt;br&gt;waves 3 → 5 → 7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="800" y="740" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="breath" value="&lt;b&gt;LowHealthBreathing&lt;/b&gt;&lt;br&gt;looped breathing below 35% HP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="540" y="810" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ce13" value="reads health" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;dashed=1;" edge="1" parent="1" source="breath" target="hp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pickup" value="&lt;b&gt;Pickup&lt;/b&gt;&lt;br&gt;health → Health.Heal&lt;br&gt;ammo → Revolver.AddReserveAmmo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="740" width="120" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ce12" value="drops" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="spawn" target="pickup">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="nav" value="&lt;b&gt;RuntimeNavMeshBaker&lt;/b&gt;&lt;br&gt;NavMeshSurface on PrototypeArena" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="800" y="830" width="210" height="60" as="geometry" />
@@ -167,10 +179,10 @@
         <mxCell id="ce11" value="fire · reload" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=0;" edge="1" parent="1" source="sai" target="rev">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="planned" value="Planned — Phase 2 (not built)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=1;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontColor=#777777;arcSize=3;" vertex="1" parent="1">
+        <mxCell id="planned" value="Phase 2 — green = built, dashed = planned" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=1;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontColor=#777777;arcSize=3;" vertex="1" parent="1">
           <mxGeometry x="20" y="930" width="1140" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="p0" value="&lt;b&gt;Dodge / Perfect Dodge&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p0" value="&lt;b&gt;PlayerDodge&lt;/b&gt; ✓ M1&lt;br&gt;dash · i-frames · perfect dodge&lt;br&gt;→ SlowMotion, enemy Stagger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="40" y="970" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="p1" value="&lt;b&gt;Weapon switching&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">

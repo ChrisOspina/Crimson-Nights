@@ -6,22 +6,29 @@ using UnityEngine;
 using UnityEngine.AI;
 
 // Builds the Phase 1 combat prototype into SampleScene: layers, data assets, the cube enemy prefab,
-// player combat components, the arena geometry, NavMesh, enemy spawner and a Cinemachine 3 camera rig.
+// health/ammo pickup prefabs, player combat components, the arena geometry, NavMesh, enemy spawner,
+// placed pickups and a Cinemachine 3 camera rig.
 // Safe to re-run: the arena root is rebuilt, existing assets are reused rather than overwritten.
 public static class PrototypeArenaBuilder
 {
 	private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 	private const string PlayerPrefabPath = "Assets/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
 	private const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
+	private const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
+	private const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
 	private const string MeleeDataPath = "Assets/Data/Weapons/RelicBlade.asset";
 	private const string EnemyDataPath = "Assets/Data/Enemies/VampireThrall_Proto.asset";
+	private const string DodgeDataPath = "Assets/Data/Player/Dodge.asset";
 	private const string MaterialFolder = "Assets/Materials/Proto";
+	private const string AudioFolder = "Assets/Audio";
 
 	private const string ArenaRootName = "PrototypeArena";
 	private const string FollowCameraName = "PlayerFollowCamera";
 	private const int PlayerLayer = 8;
 	private const int EnemyLayer = 9;
+	// built-in; keeps pickups out of the NavMesh bake and the revolver's raycasts
+	private const int IgnoreRaycastLayer = 2;
 
 	private const string LitShader = "Universal Render Pipeline/Lit";
 	private const string FxShader = "Universal Render Pipeline/Particles/Unlit";
@@ -55,19 +62,27 @@ public static class PrototypeArenaBuilder
 		RevolverData revolverData = GetOrCreateAsset<RevolverData>(RevolverDataPath, out bool revolverCreated);
 		if (revolverCreated) revolverData.HitMask = ~(1 << PlayerLayer);
 		if (revolverData.FxMaterial == null) revolverData.FxMaterial = fxMat;
+		if (revolverData.ImpactClip == null) revolverData.ImpactClip = LoadClip("Bullet Impact 21.wav");
 		EditorUtility.SetDirty(revolverData);
 
 		MeleeData meleeData = GetOrCreateAsset<MeleeData>(MeleeDataPath, out bool meleeCreated);
 		if (meleeCreated) meleeData.HitMask = 1 << EnemyLayer;
+		if (meleeData.HitClip == null) meleeData.HitClip = LoadClip("Bloody punch.wav");
 		EditorUtility.SetDirty(meleeData);
 
 		EnemyData enemyData = GetOrCreateAsset<EnemyData>(EnemyDataPath, out _);
+		if (enemyData.AttackHitClip == null) enemyData.AttackHitClip = LoadClip("Monster Bite.wav");
+		EditorUtility.SetDirty(enemyData);
 
 		GameObject enemyPrefab = GetOrCreateEnemyPrefab(enemyData, enemyMat);
-		SetupPlayerPrefab(revolverData, meleeData, revolverMat, bladeMat);
+		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, new Color(0.9f, 0.1f, 0.15f), fxMat);
+		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat);
+		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
+
+		SetupPlayerPrefab(revolverData, meleeData, dodgeData, revolverMat, bladeMat);
 		AssetDatabase.SaveAssets();
 
-		Transform cameraRoot = BuildScene(enemyPrefab, floorMat, wallMat, coverMat);
+		Transform cameraRoot = BuildScene(enemyPrefab, healthPickup, ammoPickup, floorMat, wallMat, coverMat);
 		SetupCameras(cameraRoot);
 
 		EditorSceneManager.MarkSceneDirty(scene);
@@ -124,6 +139,14 @@ public static class PrototypeArenaBuilder
 		return asset;
 	}
 
+	// optional: missing clips just leave the slot empty
+	private static AudioClip LoadClip(string fileName)
+	{
+		var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/{fileName}");
+		if (clip == null) Debug.LogWarning($"[PrototypeArenaBuilder] Audio clip not found: {AudioFolder}/{fileName}");
+		return clip;
+	}
+
 	private static void EnsureFolder(string folder)
 	{
 		if (AssetDatabase.IsValidFolder(folder)) return;
@@ -169,7 +192,50 @@ public static class PrototypeArenaBuilder
 		return prefab;
 	}
 
-	private static void SetupPlayerPrefab(RevolverData revolverData, MeleeData meleeData, Material revolverMat, Material bladeMat)
+	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, Color color, Material material)
+	{
+		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+		if (existing != null) return existing.GetComponent<Pickup>();
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+
+		// root sits on the floor with a generous trigger; the glowing sphere floats above it
+		var root = new GameObject(System.IO.Path.GetFileNameWithoutExtension(path));
+		root.layer = IgnoreRaycastLayer;
+
+		GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		visual.name = "Visual";
+		visual.layer = IgnoreRaycastLayer;
+		Object.DestroyImmediate(visual.GetComponent<Collider>());
+		visual.transform.SetParent(root.transform, false);
+		visual.transform.localPosition = new Vector3(0f, 0.6f, 0f);
+		visual.transform.localScale = Vector3.one * 0.35f;
+		var meshRenderer = visual.GetComponent<MeshRenderer>();
+		meshRenderer.sharedMaterial = material;
+		meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+		var trigger = root.AddComponent<SphereCollider>();
+		trigger.isTrigger = true;
+		trigger.center = new Vector3(0f, 0.6f, 0f);
+		trigger.radius = 0.8f;
+
+		// kinematic body so the trigger reliably fires against the CharacterController
+		var body = root.AddComponent<Rigidbody>();
+		body.isKinematic = true;
+		body.useGravity = false;
+
+		var pickup = root.AddComponent<Pickup>();
+		pickup.Type = kind;
+		pickup.Amount = amount;
+		pickup.Color = color;
+		pickup.Visual = meshRenderer;
+
+		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+		Object.DestroyImmediate(root);
+		return prefab.GetComponent<Pickup>();
+	}
+
+	private static void SetupPlayerPrefab(RevolverData revolverData, MeleeData meleeData, DodgeData dodgeData, Material revolverMat, Material bladeMat)
 	{
 		GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
 		try
@@ -206,7 +272,12 @@ public static class PrototypeArenaBuilder
 			melee.Data = meleeData;
 			melee.Blade = bladePivot;
 
+			GetOrAdd<PlayerDodge>(root).Data = dodgeData;
+
 			GetOrAdd<PlayerHUD>(root);
+
+			LowHealthBreathing breathing = GetOrAdd<LowHealthBreathing>(root);
+			if (breathing.BreathingClip == null) breathing.BreathingClip = LoadClip("breathing-6091.mp3");
 
 			PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);
 		}
@@ -232,7 +303,7 @@ public static class PrototypeArenaBuilder
 
 	// ---------------------------------------------------------------- scene
 
-	private static Transform BuildScene(GameObject enemyPrefab, Material floorMat, Material wallMat, Material coverMat)
+	private static Transform BuildScene(GameObject enemyPrefab, Pickup healthPickup, Pickup ammoPickup, Material floorMat, Material wallMat, Material coverMat)
 	{
 		// clear anything a previous run created
 		GameObject oldArena = GameObject.Find(ArenaRootName);
@@ -309,6 +380,17 @@ public static class PrototypeArenaBuilder
 		spawner.transform.SetParent(arena.transform, false);
 		spawner.EnemyPrefab = enemyPrefab;
 		spawner.SpawnPoints = spawnPoints;
+		spawner.HealthDropPrefab = healthPickup;
+		spawner.AmmoDropPrefab = ammoPickup;
+
+		// placed pickups (respawning): health on the platform and behind cover, ammo by the pillars
+		Transform pickupRoot = new GameObject("Pickups").transform;
+		pickupRoot.SetParent(arena.transform, false);
+		PlacePickup(pickupRoot, healthPickup, new Vector3(-13f, 1.5f, -13f));
+		PlacePickup(pickupRoot, healthPickup, new Vector3(0f, 0f, 11.5f));
+		PlacePickup(pickupRoot, ammoPickup, new Vector3(6f, 0f, -7.5f));
+		PlacePickup(pickupRoot, ammoPickup, new Vector3(-6f, 0f, 7.5f));
+		PlacePickup(pickupRoot, ammoPickup, new Vector3(13.5f, 0f, 0f));
 
 		// player
 		var playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
@@ -316,6 +398,12 @@ public static class PrototypeArenaBuilder
 		player.transform.SetPositionAndRotation(new Vector3(0f, 0.05f, -16f), Quaternion.identity);
 
 		return player.transform.Find("PlayerCameraRoot");
+	}
+
+	private static void PlacePickup(Transform parent, Pickup prefab, Vector3 position)
+	{
+		var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab.gameObject, parent);
+		instance.transform.position = position;
 	}
 
 	private static GameObject CreateBlock(Transform parent, string name, Vector3 position, Vector3 scale, Material material, float yaw = 0f)

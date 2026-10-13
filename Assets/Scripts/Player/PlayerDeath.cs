@@ -28,6 +28,8 @@ public class PlayerDeath : MonoBehaviour
 		SetEnabled<Revolver>(false);
 		SetEnabled<MeleeWeapon>(false);
 		SetEnabled<PlayerMovementAudio>(false);
+		SetEnabled<LowHealthBreathing>(false);
+		SetEnabled<PlayerDodge>(false);
 #if ENABLE_INPUT_SYSTEM
 		SetEnabled<PlayerInput>(false);
 #endif

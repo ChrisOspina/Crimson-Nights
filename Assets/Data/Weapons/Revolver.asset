@@ -21,6 +21,8 @@ MonoBehaviour:
   FireInterval: 0.25
   MagazineSize: 6
   ReloadTime: 1.4
+  StartingReserveAmmo: 24
+  MaxReserveAmmo: 36
   FxMaterial: {fileID: 2100000, guid: a7b8cbb597a67e949834bde2e59992aa, type: 2}
   TracerDuration: 0.05
   KickDistance: 0.08
@@ -28,3 +30,4 @@ MonoBehaviour:
   FireClip: {fileID: 0}
   ReloadClip: {fileID: 0}
   EmptyClip: {fileID: 0}
+  ImpactClip: {fileID: 8300000, guid: d2d23563ebc8dbd4ea26c092c520780b, type: 3}

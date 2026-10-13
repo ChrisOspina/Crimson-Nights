@@ -25,6 +25,10 @@ public class EnemyData : ScriptableObject
 	[Tooltip("Multiplier on incoming knockback distance")]
 	public float KnockbackScale = 1f;
 
+	[Header("Audio (optional)")]
+	[Tooltip("Played when the strike lands on the player")]
+	public AudioClip AttackHitClip;
+
 	[Header("Look")]
 	public Color BodyColor = new Color(0.45f, 0.05f, 0.08f);
 	public Color TelegraphColor = new Color(1f, 0.85f, 0.1f);

@@ -25,6 +25,7 @@ public class MeleeWeapon : MonoBehaviour
 	public event Action<Health> Hit;
 
 	private StarterAssetsInputs _input;
+	private PlayerDodge _dodge;
 	private Transform _camera;
 	private AudioSource _audioSource;
 
@@ -41,6 +42,7 @@ public class MeleeWeapon : MonoBehaviour
 	private void Awake()
 	{
 		_input = GetComponent<StarterAssetsInputs>();
+		_dodge = GetComponent<PlayerDodge>();
 		_audioSource = gameObject.AddComponent<AudioSource>();
 		_audioSource.playOnAwake = false;
 		_audioSource.spatialBlend = 0f;
@@ -140,6 +142,7 @@ public class MeleeWeapon : MonoBehaviour
 		int count = Physics.OverlapSphereNonAlloc(center, attack.Radius, _overlapBuffer, Data.HitMask, QueryTriggerInteraction.Ignore);
 
 		Vector3 flatForward = Vector3.ProjectOnPlane(_camera.forward, Vector3.up).normalized;
+		float damage = attack.Damage * (_dodge != null ? _dodge.DamageMultiplier : 1f);
 
 		for (int i = 0; i < count; i++)
 		{
@@ -147,7 +150,7 @@ public class MeleeWeapon : MonoBehaviour
 			if (health == null || health.gameObject == gameObject || !_hitThisSwing.Add(health)) continue;
 
 			Vector3 point = _overlapBuffer[i].ClosestPoint(_camera.position);
-			health.TakeDamage(new DamageInfo(attack.Damage, point, flatForward, attack.Knockback, gameObject));
+			health.TakeDamage(new DamageInfo(damage, point, flatForward, attack.Knockback, gameObject));
 			Hit?.Invoke(health);
 		}
 

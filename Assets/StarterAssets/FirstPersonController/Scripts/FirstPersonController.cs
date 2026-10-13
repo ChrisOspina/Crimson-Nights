@@ -29,6 +29,9 @@ namespace StarterAssets
 		[Tooltip("Time required to pass before entering the fall state. Useful for walking down stairs")]
 		public float FallTimeout = 0.15f;
 
+		// set by other components (e.g. PlayerDodge) to take over horizontal movement; gravity and look still run
+		[HideInInspector] public bool MovementLocked;
+
 		[Header("Player Grounded")]
 		[Tooltip("If the character is grounded or not. Not part of the CharacterController built in grounded check")]
 		public bool Grounded = true;
@@ -186,6 +189,14 @@ namespace StarterAssets
 			{
 				// move
 				inputDirection = transform.right * _input.move.x + transform.forward * _input.move.y;
+			}
+
+			// another component is driving horizontal movement; only apply gravity
+			if (MovementLocked)
+			{
+				_speed = 0.0f;
+				_controller.Move(new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+				return;
 			}
 
 			// move the player
