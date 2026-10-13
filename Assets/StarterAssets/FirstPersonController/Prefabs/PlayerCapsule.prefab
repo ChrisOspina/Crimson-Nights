@@ -626,6 +626,7 @@ GameObject:
   - component: {fileID: 2362310786942302803}
   - component: {fileID: 6870128582344027888}
   - component: {fileID: 8270828919081022263}
+  - component: {fileID: 784632358829781830}
   m_Layer: 8
   m_Name: PlayerCapsule
   m_TagString: Player
@@ -693,6 +694,7 @@ MonoBehaviour:
   SpeedChangeRate: 10
   Gravity: -15
   FallTimeout: 0.15
+  MovementLocked: 0
   Grounded: 1
   GroundedOffset: -0.14
   GroundedRadius: 0.5
@@ -737,6 +739,7 @@ MonoBehaviour:
   fire: 0
   melee: 0
   reload: 0
+  dodge: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1
@@ -875,6 +878,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   MaxHealth: 100
+  Invulnerable: 0
 --- !u!114 &7590456432262973224
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -935,6 +939,8 @@ MonoBehaviour:
   CrosshairColor: {r: 1, g: 1, b: 1, a: 0.85}
   HeavyReadyColor: {r: 1, g: 0.6, b: 0.2, a: 1}
   EmptyAmmoColor: {r: 0.9, g: 0.25, b: 0.2, a: 1}
+  CounterColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+  PerfectDodgeFlashColor: {r: 0.75, g: 0.9, b: 1, a: 1}
 --- !u!114 &8270828919081022263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,3 +958,16 @@ MonoBehaviour:
   MinVolume: 0.25
   MaxVolume: 0.8
   FadeSpeed: 0.6
+--- !u!114 &784632358829781830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8616685848737228372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b0c72b758524dbda2e1cab7168fe18a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDodge
+  Data: {fileID: 11400000, guid: aa316174da10f614a948475fa74147fd, type: 2}
