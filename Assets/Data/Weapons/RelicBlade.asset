@@ -21,6 +21,7 @@ MonoBehaviour:
     Reach: 2.2
     Radius: 0.8
     Knockback: 0.5
+    Stagger: 15
     SwingTime: 0.18
     HitDelay: 0.06
     Cooldown: 0.45
@@ -29,6 +30,7 @@ MonoBehaviour:
     Reach: 2.6
     Radius: 1.2
     Knockback: 2.5
+    Stagger: 60
     SwingTime: 0.25
     HitDelay: 0.1
     Cooldown: 1

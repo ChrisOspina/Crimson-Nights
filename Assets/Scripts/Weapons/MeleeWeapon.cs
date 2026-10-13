@@ -150,7 +150,7 @@ public class MeleeWeapon : MonoBehaviour
 			if (health == null || health.gameObject == gameObject || !_hitThisSwing.Add(health)) continue;
 
 			Vector3 point = _overlapBuffer[i].ClosestPoint(_camera.position);
-			health.TakeDamage(new DamageInfo(damage, point, flatForward, attack.Knockback, gameObject));
+			health.TakeDamage(new DamageInfo(damage, point, flatForward, attack.Knockback, gameObject, attack.Stagger));
 			Hit?.Invoke(health);
 		}
 

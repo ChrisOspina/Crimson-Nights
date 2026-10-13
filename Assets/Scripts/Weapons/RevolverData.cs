@@ -7,6 +7,8 @@ public class RevolverData : ScriptableObject
 	public float Damage = 25f;
 	[Tooltip("Knockback applied to enemies, in metres")]
 	public float Knockback = 0.3f;
+	[Tooltip("How hard a hit interrupts enemies (compared to EnemyData stagger thresholds)")]
+	public float Stagger = 15f;
 	public float Range = 100f;
 	[Tooltip("What the shot can hit. Should exclude the Player layer")]
 	public LayerMask HitMask = ~(1 << 8);

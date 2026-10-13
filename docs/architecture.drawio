@@ -122,7 +122,7 @@
         <mxCell id="death" value="&lt;b&gt;PlayerDeath&lt;/b&gt;&lt;br&gt;disable control → reload scene" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="540" y="720" width="200" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="enemy" value="&lt;b&gt;EnemyController&lt;/b&gt; (cube)&lt;br&gt;Chase → WindUp → Recover&lt;br&gt;Stagger on hit · NavMeshAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="enemy" value="&lt;b&gt;EnemyController&lt;/b&gt; (cube)&lt;br&gt;Strike · Lunge (EnemyData.Attack)&lt;br&gt;stagger if hit ≥ threshold · NavMeshAgent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="800" y="620" width="210" height="90" as="geometry" />
         </mxCell>
         <mxCell id="enemyd" value="&lt;b&gt;EnemyData&lt;/b&gt; (SO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
@@ -194,7 +194,7 @@
         <mxCell id="p3" value="&lt;b&gt;Style meter&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="730" y="970" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="p4" value="&lt;b&gt;More enemy attacks&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p4" value="&lt;b&gt;Lunge + stagger thresholds&lt;/b&gt; ✓ M2&lt;br&gt;DamageInfo.Stagger vs Attack.StaggerThreshold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="960" y="970" width="180" height="50" as="geometry" />
         </mxCell>
 

@@ -123,7 +123,7 @@ public class Revolver : MonoBehaviour
 			if (health != null)
 			{
 				float damage = Data.Damage * (_dodge != null ? _dodge.DamageMultiplier : 1f);
-				health.TakeDamage(new DamageInfo(damage, hit.point, direction, Data.Knockback, gameObject));
+				health.TakeDamage(new DamageInfo(damage, hit.point, direction, Data.Knockback, gameObject, Data.Stagger));
 			}
 
 			SpawnImpact(hit.point, health != null ? new Color(1f, 0.2f, 0.2f) : new Color(1f, 0.85f, 0.5f));

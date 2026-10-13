@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RevolverData
   Damage: 25
   Knockback: 0.3
+  Stagger: 15
   Range: 100
   HitMask:
     serializedVersion: 2

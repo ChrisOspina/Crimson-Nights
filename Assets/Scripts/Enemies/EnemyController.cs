@@ -2,13 +2,15 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Prototype melee enemy (Vampire Thrall stand-in): chase, telegraphed wind-up, strike, recover.
-// Any hit staggers it, so shooting during the wind-up interrupts the attack.
+// Prototype melee enemy (Vampire Thrall stand-in): chase, then one of two telegraphed attacks, then recover.
+// Strike: close-range swipe, interrupted by any revolver shot. Lunge: mid-range dash with a longer red-orange
+// telegraph that only a high-stagger hit (shotgun, heavy blade) interrupts. Hits below the current stagger
+// threshold still do damage but don't interrupt.
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Health))]
 public class EnemyController : MonoBehaviour
 {
-	public enum State { Idle, Chase, WindUp, Recover, Stagger, Dead }
+	public enum State { Idle, Chase, WindUp, Lunge, Recover, Stagger, Dead }
 
 	public EnemyData Data;
 	[Tooltip("Visual child that gets tinted and scaled")]
@@ -31,6 +33,12 @@ public class EnemyController : MonoBehaviour
 	private Vector3 _bodyRestScale;
 	private MaterialPropertyBlock _block;
 
+	// the attack being wound up or performed
+	private EnemyData.Attack _attack;
+	private float _lungeReadyTime;
+	private Vector3 _lungeDirection;
+	private float _lungeRemaining;
+
 	private void Awake()
 	{
 		_agent = GetComponent<NavMeshAgent>();
@@ -40,7 +48,8 @@ public class EnemyController : MonoBehaviour
 		_health.ResetHealth(Data.MaxHealth);
 		_agent.speed = Data.MoveSpeed;
 		_agent.acceleration = Data.Acceleration;
-		_agent.stoppingDistance = Data.AttackRange * 0.8f;
+		_agent.stoppingDistance = Data.Strike.MaxRange * 0.8f;
+		_attack = Data.Strike;
 
 		if (Body != null) _bodyRestScale = Body.transform.localScale;
 	}
@@ -73,6 +82,9 @@ public class EnemyController : MonoBehaviour
 			_agent.Warp(hit.position);
 		}
 
+		// don't lunge the instant a wave spawns
+		_lungeReadyTime = Time.time + Data.Lunge.Cooldown * 0.5f;
+
 		SetColor(Data.BodyColor);
 	}
 
@@ -103,17 +115,19 @@ public class EnemyController : MonoBehaviour
 					_repathTimer = 0.2f;
 					_agent.SetDestination(_player.position);
 				}
-				if (DistanceToPlayer() <= Data.AttackRange) Enter(State.WindUp);
+
+				float distance = DistanceToPlayer();
+				if (CanLunge(distance)) BeginAttack(Data.Lunge);
+				else if (distance <= Data.Strike.MaxRange) BeginAttack(Data.Strike);
 				break;
 
 			case State.WindUp:
-				FacePlayer(6f);
-				if (_stateTimer <= 0f)
-				{
-					Strike();
-					// a perfect dodge staggers us from inside Strike()
-					if (CurrentState == State.WindUp) Enter(State.Recover);
-				}
+				FacePlayer(_attack == Data.Lunge ? 10f : 6f);
+				if (_stateTimer <= 0f) ReleaseAttack();
+				break;
+
+			case State.Lunge:
+				UpdateLunge();
 				break;
 
 			case State.Recover:
@@ -139,31 +153,94 @@ public class EnemyController : MonoBehaviour
 
 		switch (state)
 		{
-			case State.WindUp: _stateTimer = Data.WindUpTime; break;
-			case State.Recover: _stateTimer = Data.RecoverTime; break;
+			case State.WindUp: _stateTimer = _attack.WindUpTime; break;
+			case State.Recover: _stateTimer = _attack.RecoverTime; break;
 			case State.Stagger: _stateTimer = Data.StaggerTime; break;
 			case State.Chase: _repathTimer = 0f; break;
 		}
 	}
 
-	private void Strike()
+	// ---------------------------------------------------------------- attacks
+
+	private bool CanLunge(float distance)
 	{
-		if (_player == null || _playerHealth == null) return;
-
-		float reach = Data.AttackRange + Data.AttackReachGrace;
-		if (_playerDodge != null && _playerDodge.TryPerfectDodge(this, reach, Data.AttackAngle)) return;
-
-		Vector3 toPlayer = _player.position - transform.position;
-		toPlayer.y = 0f;
-		bool inRange = toPlayer.magnitude <= reach;
-		bool inFront = Vector3.Angle(transform.forward, toPlayer) <= Data.AttackAngle;
-
-		if (inRange && inFront)
-		{
-			_playerHealth.TakeDamage(new DamageInfo(Data.AttackDamage, _player.position, toPlayer.normalized, 0f, gameObject));
-			if (Data.AttackHitClip != null) AudioSource.PlayClipAtPoint(Data.AttackHitClip, transform.position);
-		}
+		if (Time.time < _lungeReadyTime) return false;
+		if (distance < Data.Lunge.MinRange || distance > Data.Lunge.MaxRange) return false;
+		// only lunge along a clear stretch of NavMesh (Raycast returns true when blocked)
+		return !NavMesh.Raycast(transform.position, _player.position, out _, NavMesh.AllAreas);
 	}
+
+	private void BeginAttack(EnemyData.Attack attack)
+	{
+		_attack = attack;
+		Enter(State.WindUp);
+	}
+
+	// end of the wind-up: a perfect dodge cancels the attack, otherwise strike or start the lunge dash
+	private void ReleaseAttack()
+	{
+		if (_attack == Data.Lunge) _lungeReadyTime = Time.time + Data.Lunge.Cooldown;
+
+		float reach = _attack.MaxRange + _attack.ReachGrace;
+		if (_playerDodge != null && _playerDodge.TryPerfectDodge(this, reach, _attack.Angle)) return;
+
+		if (_attack == Data.Lunge)
+		{
+			StartLunge();
+			return;
+		}
+
+		Vector3 toPlayer = FlatToPlayer();
+		if (toPlayer.magnitude <= reach && Vector3.Angle(transform.forward, toPlayer) <= _attack.Angle)
+		{
+			DamagePlayer(toPlayer.normalized);
+		}
+		Enter(State.Recover);
+	}
+
+	private void StartLunge()
+	{
+		Vector3 toPlayer = FlatToPlayer();
+		_lungeDirection = toPlayer.sqrMagnitude > 0.001f ? toPlayer.normalized : transform.forward;
+		_lungeRemaining = Mathf.Min(toPlayer.magnitude + Data.LungeOvershoot, Data.LungeMaxDistance);
+		transform.rotation = Quaternion.LookRotation(_lungeDirection);
+		Enter(State.Lunge);
+	}
+
+	// the dash commits to the direction chosen at release, so sidestepping or dodging avoids it
+	private void UpdateLunge()
+	{
+		float step = Mathf.Min(Data.LungeSpeed * Time.deltaTime, _lungeRemaining);
+		Vector3 before = transform.position;
+		if (_agent.isOnNavMesh) _agent.Move(_lungeDirection * step);
+		_lungeRemaining -= step;
+
+		if (_player != null && DistanceToPlayer() <= Data.LungeHitRadius && DamagePlayer(_lungeDirection))
+		{
+			Enter(State.Recover);
+			return;
+		}
+
+		// finished, or stopped by the edge of the NavMesh
+		Vector3 moved = transform.position - before;
+		moved.y = 0f;
+		if (_lungeRemaining <= 0f || moved.magnitude < step * 0.25f) Enter(State.Recover);
+	}
+
+	// returns true if the hit actually did damage (false while the player is dodging)
+	private bool DamagePlayer(Vector3 direction)
+	{
+		if (_playerHealth == null) return false;
+
+		float before = _playerHealth.Current;
+		_playerHealth.TakeDamage(new DamageInfo(_attack.Damage, _player.position, direction, 0f, gameObject));
+		if (_playerHealth.Current >= before) return false;
+
+		if (Data.AttackHitClip != null) AudioSource.PlayClipAtPoint(Data.AttackHitClip, transform.position);
+		return true;
+	}
+
+	// ---------------------------------------------------------------- reactions
 
 	// staggers for at least `duration`; never shortens a stagger already running (e.g. a long perfect-dodge stagger)
 	public void Stagger(float duration)
@@ -177,6 +254,11 @@ public class EnemyController : MonoBehaviour
 	private void OnDamaged(DamageInfo info)
 	{
 		_hitFlashTimer = 0.08f;
+
+		// during a wind-up or lunge only a strong enough hit interrupts; the hit still does damage either way
+		bool attacking = CurrentState == State.WindUp || CurrentState == State.Lunge;
+		float threshold = attacking ? _attack.StaggerThreshold : Data.BaseStaggerThreshold;
+		if (info.Stagger < threshold) return;
 
 		Vector3 push = info.Direction;
 		push.y = 0f;
@@ -216,6 +298,8 @@ public class EnemyController : MonoBehaviour
 		_knockback -= step;
 	}
 
+	// ---------------------------------------------------------------- visuals & helpers
+
 	private void UpdateVisuals()
 	{
 		Color color = Data.BodyColor;
@@ -223,11 +307,16 @@ public class EnemyController : MonoBehaviour
 
 		if (CurrentState == State.WindUp)
 		{
-			float t = 1f - Mathf.Clamp01(_stateTimer / Data.WindUpTime);
-			// flicker faster as the strike gets closer
+			float t = 1f - Mathf.Clamp01(_stateTimer / _attack.WindUpTime);
+			// flicker faster as the attack gets closer
 			float pulse = 0.5f + 0.5f * Mathf.Sin(t * t * 40f);
-			color = Color.Lerp(Data.BodyColor, Data.TelegraphColor, Mathf.Lerp(0.4f, 1f, pulse * t + t * 0.5f));
+			color = Color.Lerp(Data.BodyColor, _attack.TelegraphColor, Mathf.Lerp(0.4f, 1f, pulse * t + t * 0.5f));
 			scale = 1f + 0.12f * t;
+		}
+		else if (CurrentState == State.Lunge)
+		{
+			color = _attack.TelegraphColor;
+			scale = 1.12f;
 		}
 
 		if (_hitFlashTimer > 0f)
@@ -243,17 +332,21 @@ public class EnemyController : MonoBehaviour
 	private void FacePlayer(float speed)
 	{
 		if (_player == null) return;
-		Vector3 toPlayer = _player.position - transform.position;
-		toPlayer.y = 0f;
+		Vector3 toPlayer = FlatToPlayer();
 		if (toPlayer.sqrMagnitude < 0.001f) return;
 		transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(toPlayer), Time.deltaTime * speed);
 	}
 
-	private float DistanceToPlayer()
+	private Vector3 FlatToPlayer()
 	{
 		Vector3 toPlayer = _player.position - transform.position;
 		toPlayer.y = 0f;
-		return toPlayer.magnitude;
+		return toPlayer;
+	}
+
+	private float DistanceToPlayer()
+	{
+		return FlatToPlayer().magnitude;
 	}
 
 	private void SetColor(Color color)
@@ -267,8 +360,11 @@ public class EnemyController : MonoBehaviour
 	private void OnDrawGizmosSelected()
 	{
 		if (Data == null) return;
-		Gizmos.color = Color.yellow;
-		Gizmos.DrawWireSphere(transform.position, Data.AttackRange);
+		Gizmos.color = Data.Strike.TelegraphColor;
+		Gizmos.DrawWireSphere(transform.position, Data.Strike.MaxRange);
+		Gizmos.color = Data.Lunge.TelegraphColor;
+		Gizmos.DrawWireSphere(transform.position, Data.Lunge.MinRange);
+		Gizmos.DrawWireSphere(transform.position, Data.Lunge.MaxRange);
 		Gizmos.color = new Color(1f, 1f, 1f, 0.2f);
 		Gizmos.DrawWireSphere(transform.position, Data.DetectionRange);
 	}

@@ -16,15 +16,35 @@ MonoBehaviour:
   MoveSpeed: 4.5
   Acceleration: 20
   DetectionRange: 25
-  AttackRange: 1.8
-  AttackReachGrace: 0.6
-  AttackAngle: 70
-  WindUpTime: 0.6
-  AttackDamage: 15
-  RecoverTime: 0.8
+  Strike:
+    MinRange: 0
+    MaxRange: 1.8
+    ReachGrace: 0.6
+    Angle: 70
+    WindUpTime: 0.6
+    Damage: 15
+    RecoverTime: 0.8
+    Cooldown: 0
+    StaggerThreshold: 10
+    TelegraphColor: {r: 1, g: 0.85, b: 0.1, a: 1}
+  Lunge:
+    MinRange: 4
+    MaxRange: 7
+    ReachGrace: 0.5
+    Angle: 60
+    WindUpTime: 0.9
+    Damage: 20
+    RecoverTime: 1.2
+    Cooldown: 4
+    StaggerThreshold: 40
+    TelegraphColor: {r: 1, g: 0.3, b: 0.05, a: 1}
+  LungeOvershoot: 1
+  LungeMaxDistance: 8
+  LungeSpeed: 18
+  LungeHitRadius: 1.2
   StaggerTime: 0.25
+  BaseStaggerThreshold: 0
   KnockbackScale: 1
   AttackHitClip: {fileID: 8300000, guid: 4ec1edd89ea2e844f86900c51b795c63, type: 3}
   BodyColor: {r: 0.45, g: 0.05, b: 0.08, a: 1}
-  TelegraphColor: {r: 1, g: 0.85, b: 0.1, a: 1}
   HitFlashColor: {r: 1, g: 1, b: 1, a: 1}

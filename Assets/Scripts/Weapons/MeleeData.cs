@@ -13,6 +13,8 @@ public class MeleeData : ScriptableObject
 		public float Radius = 0.8f;
 		[Tooltip("Knockback applied to enemies, in metres")]
 		public float Knockback = 0.5f;
+		[Tooltip("How hard a hit interrupts enemies (compared to EnemyData stagger thresholds)")]
+		public float Stagger = 15f;
 		[Tooltip("Swing animation length")]
 		public float SwingTime = 0.18f;
 		[Tooltip("Seconds into the swing when the hit is checked")]
@@ -33,6 +35,7 @@ public class MeleeData : ScriptableObject
 		Reach = 2.6f,
 		Radius = 1.2f,
 		Knockback = 2.5f,
+		Stagger = 60f,
 		SwingTime = 0.25f,
 		HitDelay = 0.1f,
 		Cooldown = 1.0f,

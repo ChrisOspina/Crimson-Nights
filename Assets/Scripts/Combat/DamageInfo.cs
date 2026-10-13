@@ -10,13 +10,16 @@ public struct DamageInfo
 	// knockback distance in metres (enemies) / impulse strength
 	public float Knockback;
 	public GameObject Source;
+	// how hard the hit interrupts; compared against the target's stagger threshold (0 = only staggers unarmoured targets)
+	public float Stagger;
 
-	public DamageInfo(float amount, Vector3 point, Vector3 direction, float knockback, GameObject source)
+	public DamageInfo(float amount, Vector3 point, Vector3 direction, float knockback, GameObject source, float stagger = 0f)
 	{
 		Amount = amount;
 		Point = point;
 		Direction = direction;
 		Knockback = knockback;
 		Source = source;
+		Stagger = stagger;
 	}
 }
