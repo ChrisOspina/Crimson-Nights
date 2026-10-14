@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1024d4f89e3bac5488c3a43d6f190981, type: 3}
+  m_Name: RelicShotgun
+  m_EditorClassIdentifier: Assembly-CSharp::FirearmData
+  DisplayName: Relic Shotgun
+  Damage: 7
+  Knockback: 0.15
+  Stagger: 6
+  Range: 25
+  HitMask:
+    serializedVersion: 2
+    m_Bits: 4294967039
+  PelletCount: 8
+  SpreadAngle: 6
+  FireInterval: 0.9
+  MagazineSize: 2
+  ReloadTime: 1.8
+  StartingReserveAmmo: 8
+  MaxReserveAmmo: 16
+  AmmoPerPickup: 4
+  FxMaterial: {fileID: 2100000, guid: a7b8cbb597a67e949834bde2e59992aa, type: 2}
+  TracerDuration: 0.05
+  KickDistance: 0.14
+  KickAngle: 18
+  FireClip: {fileID: 0}
+  ReloadClip: {fileID: 0}
+  EmptyClip: {fileID: 0}
+  ImpactClip: {fileID: 8300000, guid: d2d23563ebc8dbd4ea26c092c520780b, type: 3}

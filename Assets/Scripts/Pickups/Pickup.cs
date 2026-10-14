@@ -8,7 +8,7 @@ public class Pickup : MonoBehaviour
 	public enum Kind { Health, Ammo }
 
 	public Kind Type = Kind.Health;
-	[Tooltip("Hit points restored, or rounds added to the revolver's reserve")]
+	[Tooltip("Hit points restored. Health pickups only: ammo pickups give each firearm its FirearmData.AmmoPerPickup")]
 	public int Amount = 25;
 	[Tooltip("Seconds until it reappears after being collected. 0 = collected for good")]
 	public float RespawnTime = 20f;
@@ -91,8 +91,13 @@ public class Pickup : MonoBehaviour
 				return true;
 
 			case Kind.Ammo:
-				Revolver revolver = player.GetComponent<Revolver>();
-				return revolver != null && revolver.AddReserveAmmo(Amount) > 0;
+				// tops up every firearm, holstered or not; only used if at least one had room
+				bool taken = false;
+				foreach (Firearm firearm in player.GetComponents<Firearm>())
+				{
+					if (firearm.AddReserveAmmo(firearm.Data.AmmoPerPickup) > 0) taken = true;
+				}
+				return taken;
 		}
 		return false;
 	}

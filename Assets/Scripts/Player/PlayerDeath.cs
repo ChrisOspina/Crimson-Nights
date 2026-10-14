@@ -25,7 +25,9 @@ public class PlayerDeath : MonoBehaviour
 	private void OnDied()
 	{
 		SetEnabled<FirstPersonController>(false);
-		SetEnabled<Revolver>(false);
+		// switcher first, so a switch in progress can't re-enable a firearm
+		SetEnabled<WeaponSwitcher>(false);
+		foreach (Firearm firearm in GetComponents<Firearm>()) firearm.enabled = false;
 		SetEnabled<MeleeWeapon>(false);
 		SetEnabled<PlayerMovementAudio>(false);
 		SetEnabled<LowHealthBreathing>(false);

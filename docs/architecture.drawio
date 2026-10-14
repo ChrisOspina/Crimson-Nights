@@ -101,13 +101,19 @@
         <mxCell id="combat" value="Combat systems (also on PlayerCapsule) + enemies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;arcSize=3;" vertex="1" parent="1">
           <mxGeometry x="20" y="580" width="1140" height="330" as="geometry" />
         </mxCell>
-        <mxCell id="rev" value="&lt;b&gt;Revolver&lt;/b&gt;&lt;br&gt;hitscan from Camera.main&lt;br&gt;6 rounds + reserve · R / auto reload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="rev" value="&lt;b&gt;Firearm&lt;/b&gt; ×2 (revolver, shotgun)&lt;br&gt;hitscan pellets from Camera.main&lt;br&gt;mag + reserve · R / auto reload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="620" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="switch" value="&lt;b&gt;WeaponSwitcher&lt;/b&gt;&lt;br&gt;Q / scroll · enables one Firearm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="600" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ce20" value="enables" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="switch" target="rev">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="mel" value="&lt;b&gt;MeleeWeapon&lt;/b&gt;&lt;br&gt;tap = light · hold = heavy&lt;br&gt;OverlapSphere on Enemy layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="720" width="180" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="revd" value="&lt;b&gt;RevolverData&lt;/b&gt; (SO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="revd" value="&lt;b&gt;FirearmData&lt;/b&gt; (SO) ×2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="40" y="820" width="180" height="40" as="geometry" />
         </mxCell>
         <mxCell id="meld" value="&lt;b&gt;MeleeData&lt;/b&gt; (SO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
@@ -137,7 +143,7 @@
         <mxCell id="ce13" value="reads health" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;dashed=1;" edge="1" parent="1" source="breath" target="hp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="pickup" value="&lt;b&gt;Pickup&lt;/b&gt;&lt;br&gt;health → Health.Heal&lt;br&gt;ammo → Revolver.AddReserveAmmo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="pickup" value="&lt;b&gt;Pickup&lt;/b&gt;&lt;br&gt;health → Health.Heal&lt;br&gt;ammo → each Firearm.AddReserveAmmo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1030" y="740" width="120" height="90" as="geometry" />
         </mxCell>
         <mxCell id="ce12" value="drops" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="spawn" target="pickup">
@@ -185,7 +191,7 @@
         <mxCell id="p0" value="&lt;b&gt;PlayerDodge&lt;/b&gt; ✓ M1&lt;br&gt;dash · i-frames · perfect dodge&lt;br&gt;→ SlowMotion, enemy Stagger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="40" y="970" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="p1" value="&lt;b&gt;Weapon switching&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p1" value="&lt;b&gt;Weapon switching&lt;/b&gt; ✓ M3&lt;br&gt;WeaponSwitcher · revolver ↔ relic shotgun" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="270" y="970" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="p2" value="&lt;b&gt;Combo system&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">

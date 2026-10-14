@@ -1,14 +1,16 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using StarterAssets;
 using UnityEngine;
 
-// Hitscan revolver. Fires from the centre of the screen, reloads with R or automatically when empty.
-// Reloads draw from a limited reserve, which ammo pickups refill.
+// Hitscan firearm (revolver, relic shotgun). Fires from the centre of the screen, reloads with R or
+// automatically when empty. Reloads draw from a limited reserve, which ammo pickups refill.
+// The player carries several; WeaponSwitcher keeps only the equipped one enabled.
 [RequireComponent(typeof(StarterAssetsInputs))]
-public class Revolver : MonoBehaviour
+public class Firearm : MonoBehaviour
 {
-	public RevolverData Data;
+	public FirearmData Data;
 	[Tooltip("Viewmodel that kicks back when firing")]
 	public Transform Viewmodel;
 	[Tooltip("Where tracers and the muzzle flash start")]
@@ -38,6 +40,14 @@ public class Revolver : MonoBehaviour
 
 	private GameObject _muzzleFlash;
 
+	// pellet hits grouped per target, so one shotgun blast is one damage event
+	private struct PelletHits
+	{
+		public int Count;
+		public Vector3 Point;
+	}
+	private readonly Dictionary<Health, PelletHits> _pelletHits = new Dictionary<Health, PelletHits>();
+
 	private void Awake()
 	{
 		_input = GetComponent<StarterAssetsInputs>();
@@ -64,10 +74,23 @@ public class Revolver : MonoBehaviour
 		Changed?.Invoke();
 	}
 
+	private void OnEnable()
+	{
+		// drawn with an empty magazine: start loading straight away
+		if (_camera != null && Ammo <= 0) StartReload();
+	}
+
 	private void OnDisable()
 	{
 		StopAllCoroutines();
 		if (_muzzleFlash != null) _muzzleFlash.SetActive(false);
+
+		// holstering cancels a reload in progress
+		if (IsReloading)
+		{
+			IsReloading = false;
+			Changed?.Invoke();
+		}
 	}
 
 	private void Update()
@@ -112,30 +135,68 @@ public class Revolver : MonoBehaviour
 		Changed?.Invoke();
 
 		Vector3 origin = _camera.position;
-		Vector3 direction = _camera.forward;
-		Vector3 end = origin + direction * Data.Range;
+		Vector3 tracerStart = Muzzle != null ? Muzzle.position : origin;
+		bool anyHit = false;
+		Vector3 firstHitPoint = Vector3.zero;
+		_pelletHits.Clear();
 
-		if (Physics.Raycast(origin, direction, out RaycastHit hit, Data.Range, Data.HitMask, QueryTriggerInteraction.Ignore))
+		for (int i = 0; i < Data.PelletCount; i++)
 		{
-			end = hit.point;
+			Vector3 direction = PelletDirection();
+			Vector3 end = origin + direction * Data.Range;
 
-			Health health = hit.collider.GetComponentInParent<Health>();
-			if (health != null)
+			if (Physics.Raycast(origin, direction, out RaycastHit hit, Data.Range, Data.HitMask, QueryTriggerInteraction.Ignore))
 			{
-				float damage = Data.Damage * (_dodge != null ? _dodge.DamageMultiplier : 1f);
-				health.TakeDamage(new DamageInfo(damage, hit.point, direction, Data.Knockback, gameObject, Data.Stagger));
+				end = hit.point;
+				if (!anyHit)
+				{
+					anyHit = true;
+					firstHitPoint = hit.point;
+				}
+
+				Health health = hit.collider.GetComponentInParent<Health>();
+				if (health != null)
+				{
+					_pelletHits.TryGetValue(health, out PelletHits hits);
+					if (hits.Count == 0) hits.Point = hit.point;
+					hits.Count++;
+					_pelletHits[health] = hits;
+				}
+
+				SpawnImpact(hit.point, health != null ? new Color(1f, 0.2f, 0.2f) : new Color(1f, 0.85f, 0.5f));
 			}
 
-			SpawnImpact(hit.point, health != null ? new Color(1f, 0.2f, 0.2f) : new Color(1f, 0.85f, 0.5f));
-			if (Data.ImpactClip != null) AudioSource.PlayClipAtPoint(Data.ImpactClip, hit.point);
+			SpawnTracer(tracerStart, end);
 		}
 
-		SpawnTracer(Muzzle != null ? Muzzle.position : origin, end);
+		// one damage event per target, with every pellet that hit it added up (so close shotgun blasts stagger)
+		float multiplier = _dodge != null ? _dodge.DamageMultiplier : 1f;
+		foreach (KeyValuePair<Health, PelletHits> pair in _pelletHits)
+		{
+			int count = pair.Value.Count;
+			Vector3 point = pair.Value.Point;
+			Vector3 direction = (point - origin).normalized;
+			pair.Key.TakeDamage(new DamageInfo(Data.Damage * count * multiplier, point, direction,
+				Data.Knockback * count, gameObject, Data.Stagger * count));
+		}
+		_pelletHits.Clear();
+
+		if (anyHit && Data.ImpactClip != null) AudioSource.PlayClipAtPoint(Data.ImpactClip, firstHitPoint);
+
 		StartCoroutine(FlashMuzzle());
 		PlayClip(Data.FireClip);
 		_kick = 1f;
 
 		if (Ammo <= 0) StartReload();
+	}
+
+	// camera forward, tilted by a random amount inside the spread cone
+	private Vector3 PelletDirection()
+	{
+		if (Data.SpreadAngle <= 0f) return _camera.forward;
+
+		Vector2 offset = UnityEngine.Random.insideUnitCircle * Mathf.Tan(Data.SpreadAngle * Mathf.Deg2Rad);
+		return (_camera.forward + _camera.right * offset.x + _camera.up * offset.y).normalized;
 	}
 
 	private void StartReload()
@@ -157,8 +218,8 @@ public class Revolver : MonoBehaviour
 		ReserveAmmo += added;
 		Changed?.Invoke();
 
-		// picked up ammo with an empty gun: load it straight away
-		if (Ammo <= 0) StartReload();
+		// picked up ammo with an empty gun in hand: load it straight away (holstered ones load when drawn)
+		if (Ammo <= 0 && isActiveAndEnabled) StartReload();
 		return added;
 	}
 

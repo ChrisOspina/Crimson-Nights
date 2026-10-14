@@ -13,12 +13,14 @@ public class PlayerHUD : MonoBehaviour
 	public Color PerfectDodgeFlashColor = new Color(0.75f, 0.9f, 1f, 1f);
 
 	private Health _health;
-	private Revolver _revolver;
+	private Firearm[] _firearms;
+	private WeaponSwitcher _switcher;
 	private MeleeWeapon _melee;
 	private PlayerDodge _dodge;
 
 	private RectTransform _healthFill;
 	private Text _ammoText;
+	private Text _weaponText;
 	private Image _crosshair;
 	private Image _damageFlash;
 	private Color _flashColor;
@@ -29,7 +31,8 @@ public class PlayerHUD : MonoBehaviour
 	private void Awake()
 	{
 		_health = GetComponent<Health>();
-		_revolver = GetComponent<Revolver>();
+		_firearms = GetComponents<Firearm>();
+		_switcher = GetComponent<WeaponSwitcher>();
 		_melee = GetComponent<MeleeWeapon>();
 		_dodge = GetComponent<PlayerDodge>();
 		BuildUI();
@@ -39,7 +42,8 @@ public class PlayerHUD : MonoBehaviour
 	{
 		_health.Damaged += OnDamaged;
 		_health.Healed += RefreshHealth;
-		if (_revolver != null) _revolver.Changed += RefreshAmmo;
+		foreach (Firearm firearm in _firearms) firearm.Changed += RefreshAmmo;
+		if (_switcher != null) _switcher.Switched += OnSwitched;
 		if (_dodge != null) _dodge.PerfectDodged += OnPerfectDodged;
 	}
 
@@ -47,7 +51,8 @@ public class PlayerHUD : MonoBehaviour
 	{
 		_health.Damaged -= OnDamaged;
 		_health.Healed -= RefreshHealth;
-		if (_revolver != null) _revolver.Changed -= RefreshAmmo;
+		foreach (Firearm firearm in _firearms) firearm.Changed -= RefreshAmmo;
+		if (_switcher != null) _switcher.Switched -= OnSwitched;
 		if (_dodge != null) _dodge.PerfectDodged -= OnPerfectDodged;
 	}
 
@@ -101,16 +106,22 @@ public class PlayerHUD : MonoBehaviour
 		_healthFill.anchorMax = new Vector2(_health.Normalized, 1f);
 	}
 
+	private void OnSwitched(Firearm firearm) => RefreshAmmo();
+
+	// shows the equipped firearm (or the one being drawn)
 	private void RefreshAmmo()
 	{
-		if (_revolver == null)
+		Firearm firearm = _switcher != null ? _switcher.Current : _firearms.Length > 0 ? _firearms[0] : null;
+		if (firearm == null)
 		{
 			_ammoText.text = "";
+			_weaponText.text = "";
 			return;
 		}
-		_ammoText.text = _revolver.IsReloading ? "RELOADING" : $"{_revolver.Ammo} / {_revolver.ReserveAmmo}";
+		_weaponText.text = firearm.Data.DisplayName.ToUpperInvariant();
+		_ammoText.text = firearm.IsReloading ? "RELOADING" : $"{firearm.Ammo} / {firearm.ReserveAmmo}";
 		// red when there's nothing left to load
-		_ammoText.color = _revolver.ReserveAmmo == 0 && !_revolver.IsReloading ? EmptyAmmoColor : Color.white;
+		_ammoText.color = firearm.ReserveAmmo == 0 && !firearm.IsReloading ? EmptyAmmoColor : Color.white;
 	}
 
 	private void BuildUI()
@@ -166,6 +177,15 @@ public class PlayerHUD : MonoBehaviour
 		ammoRect.pivot = new Vector2(1f, 0f);
 		ammoRect.anchoredPosition = new Vector2(-40f, 32f);
 		ammoRect.sizeDelta = new Vector2(400f, 60f);
+
+		// equipped weapon name, just above the ammo count
+		_weaponText = CreateText("Weapon", root, font, 22, TextAnchor.LowerRight);
+		RectTransform weaponRect = _weaponText.rectTransform;
+		weaponRect.anchorMin = weaponRect.anchorMax = new Vector2(1f, 0f);
+		weaponRect.pivot = new Vector2(1f, 0f);
+		weaponRect.anchoredPosition = new Vector2(-40f, 92f);
+		weaponRect.sizeDelta = new Vector2(400f, 30f);
+		_weaponText.color = new Color(1f, 1f, 1f, 0.7f);
 
 		// death message
 		_deathText = CreateText("DeathText", root, font, 96, TextAnchor.MiddleCenter);

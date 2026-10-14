@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1024d4f89e3bac5488c3a43d6f190981, type: 3}
   m_Name: Revolver
   m_EditorClassIdentifier: Assembly-CSharp::RevolverData
+  DisplayName: Revolver
   Damage: 25
   Knockback: 0.3
   Stagger: 15
@@ -19,11 +20,14 @@ MonoBehaviour:
   HitMask:
     serializedVersion: 2
     m_Bits: 4294967039
+  PelletCount: 1
+  SpreadAngle: 0
   FireInterval: 0.25
   MagazineSize: 6
   ReloadTime: 1.4
   StartingReserveAmmo: 24
   MaxReserveAmmo: 36
+  AmmoPerPickup: 12
   FxMaterial: {fileID: 2100000, guid: a7b8cbb597a67e949834bde2e59992aa, type: 2}
   TracerDuration: 0.05
   KickDistance: 0.08

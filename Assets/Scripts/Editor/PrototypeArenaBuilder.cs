@@ -17,6 +17,7 @@ public static class PrototypeArenaBuilder
 	private const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
 	private const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
+	private const string ShotgunDataPath = "Assets/Data/Weapons/RelicShotgun.asset";
 	private const string MeleeDataPath = "Assets/Data/Weapons/RelicBlade.asset";
 	private const string EnemyDataPath = "Assets/Data/Enemies/VampireThrall_Proto.asset";
 	private const string DodgeDataPath = "Assets/Data/Player/Dodge.asset";
@@ -59,12 +60,20 @@ public static class PrototypeArenaBuilder
 		Material coverMat = GetOrCreateMaterial("Arena_Cover", LitShader, new Color(0.45f, 0.4f, 0.36f));
 		Material revolverMat = GetOrCreateMaterial("Viewmodel_Revolver", LitShader, new Color(0.15f, 0.15f, 0.17f));
 		Material bladeMat = GetOrCreateMaterial("Viewmodel_Blade", LitShader, new Color(0.75f, 0.78f, 0.85f));
+		Material woodMat = GetOrCreateMaterial("Viewmodel_Wood", LitShader, new Color(0.3f, 0.16f, 0.08f));
 
-		RevolverData revolverData = GetOrCreateAsset<RevolverData>(RevolverDataPath, out bool revolverCreated);
+		FirearmData revolverData = GetOrCreateAsset<FirearmData>(RevolverDataPath, out bool revolverCreated);
 		if (revolverCreated) revolverData.HitMask = ~(1 << PlayerLayer);
+		if (string.IsNullOrEmpty(revolverData.DisplayName)) revolverData.DisplayName = "Revolver";
 		if (revolverData.FxMaterial == null) revolverData.FxMaterial = fxMat;
 		if (revolverData.ImpactClip == null) revolverData.ImpactClip = LoadClip("Bullet Impact 21.wav");
 		EditorUtility.SetDirty(revolverData);
+
+		FirearmData shotgunData = GetOrCreateAsset<FirearmData>(ShotgunDataPath, out bool shotgunCreated);
+		if (shotgunCreated) ApplyShotgunDefaults(shotgunData);
+		if (shotgunData.FxMaterial == null) shotgunData.FxMaterial = fxMat;
+		if (shotgunData.ImpactClip == null) shotgunData.ImpactClip = LoadClip("Bullet Impact 21.wav");
+		EditorUtility.SetDirty(shotgunData);
 
 		MeleeData meleeData = GetOrCreateAsset<MeleeData>(MeleeDataPath, out bool meleeCreated);
 		if (meleeCreated) meleeData.HitMask = 1 << EnemyLayer;
@@ -80,7 +89,7 @@ public static class PrototypeArenaBuilder
 		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat);
 		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
 
-		SetupPlayerPrefab(revolverData, meleeData, dodgeData, revolverMat, bladeMat);
+		SetupPlayerPrefab(revolverData, shotgunData, meleeData, dodgeData, revolverMat, woodMat, bladeMat);
 		AssetDatabase.SaveAssets();
 
 		Transform cameraRoot = BuildScene(enemyPrefab, healthPickup, ammoPickup, floorMat, wallMat, coverMat);
@@ -246,7 +255,29 @@ public static class PrototypeArenaBuilder
 		return prefab.GetComponent<Pickup>();
 	}
 
-	private static void SetupPlayerPrefab(RevolverData revolverData, MeleeData meleeData, DodgeData dodgeData, Material revolverMat, Material bladeMat)
+	// Close-range spread weapon: 8 pellets, and a lunge (stagger threshold 40) is only interrupted when 7+ land
+	private static void ApplyShotgunDefaults(FirearmData data)
+	{
+		data.DisplayName = "Relic Shotgun";
+		data.HitMask = ~(1 << PlayerLayer);
+		data.Damage = 7f;
+		data.Knockback = 0.15f;
+		data.Stagger = 6f;
+		data.Range = 25f;
+		data.PelletCount = 8;
+		data.SpreadAngle = 6f;
+		data.FireInterval = 0.9f;
+		data.MagazineSize = 2;
+		data.ReloadTime = 1.8f;
+		data.StartingReserveAmmo = 8;
+		data.MaxReserveAmmo = 16;
+		data.AmmoPerPickup = 4;
+		data.KickDistance = 0.14f;
+		data.KickAngle = 18f;
+	}
+
+	private static void SetupPlayerPrefab(FirearmData revolverData, FirearmData shotgunData, MeleeData meleeData, DodgeData dodgeData,
+		Material metalMat, Material woodMat, Material bladeMat)
 	{
 		GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
 		try
@@ -260,10 +291,21 @@ public static class PrototypeArenaBuilder
 			Transform revolverPivot = GetOrCreateChild(cameraRoot, "RevolverViewmodel", new Vector3(0.25f, -0.22f, 0.45f));
 			if (revolverPivot.Find("Body") == null)
 			{
-				CreateViewmodelCube(revolverPivot, "Body", Vector3.zero, new Vector3(0.07f, 0.12f, 0.3f), revolverMat);
-				CreateViewmodelCube(revolverPivot, "Grip", new Vector3(0f, -0.1f, -0.1f), new Vector3(0.06f, 0.14f, 0.07f), revolverMat);
+				CreateViewmodelCube(revolverPivot, "Body", Vector3.zero, new Vector3(0.07f, 0.12f, 0.3f), metalMat);
+				CreateViewmodelCube(revolverPivot, "Grip", new Vector3(0f, -0.1f, -0.1f), new Vector3(0.06f, 0.14f, 0.07f), metalMat);
 			}
 			Transform muzzle = GetOrCreateChild(revolverPivot, "Muzzle", new Vector3(0f, 0.02f, 0.17f));
+
+			// shotgun viewmodel: side-by-side barrels over a wooden stock, hidden until switched to
+			Transform shotgunPivot = GetOrCreateChild(cameraRoot, "ShotgunViewmodel", new Vector3(0.25f, -0.24f, 0.45f));
+			if (shotgunPivot.Find("BarrelL") == null)
+			{
+				CreateViewmodelCube(shotgunPivot, "BarrelL", new Vector3(-0.025f, 0.02f, 0.1f), new Vector3(0.045f, 0.045f, 0.5f), metalMat);
+				CreateViewmodelCube(shotgunPivot, "BarrelR", new Vector3(0.025f, 0.02f, 0.1f), new Vector3(0.045f, 0.045f, 0.5f), metalMat);
+				CreateViewmodelCube(shotgunPivot, "Stock", new Vector3(0f, -0.04f, -0.15f), new Vector3(0.08f, 0.1f, 0.3f), woodMat);
+			}
+			Transform shotgunMuzzle = GetOrCreateChild(shotgunPivot, "Muzzle", new Vector3(0f, 0.02f, 0.36f));
+			shotgunPivot.gameObject.SetActive(false);
 
 			// blade viewmodel: pivot at the hilt, blade extends along +Z
 			Transform bladePivot = GetOrCreateChild(cameraRoot, "BladeViewmodel", new Vector3(-0.3f, -0.3f, 0.4f));
@@ -271,13 +313,18 @@ public static class PrototypeArenaBuilder
 			{
 				bladePivot.localRotation = Quaternion.Euler(-55f, 15f, 0f);
 				CreateViewmodelCube(bladePivot, "Blade", new Vector3(0f, 0f, 0.45f), new Vector3(0.03f, 0.06f, 0.8f), bladeMat);
-				CreateViewmodelCube(bladePivot, "Guard", new Vector3(0f, 0f, 0.04f), new Vector3(0.2f, 0.04f, 0.04f), revolverMat);
+				CreateViewmodelCube(bladePivot, "Guard", new Vector3(0f, 0f, 0.04f), new Vector3(0.2f, 0.04f, 0.04f), metalMat);
 			}
 
-			Revolver revolver = GetOrAdd<Revolver>(root);
-			revolver.Data = revolverData;
+			Firearm revolver = GetOrAddFirearm(root, revolverData);
 			revolver.Viewmodel = revolverPivot;
 			revolver.Muzzle = muzzle;
+
+			Firearm shotgun = GetOrAddFirearm(root, shotgunData);
+			shotgun.Viewmodel = shotgunPivot;
+			shotgun.Muzzle = shotgunMuzzle;
+
+			GetOrAdd<WeaponSwitcher>(root).Firearms = new[] { revolver, shotgun };
 
 			MeleeWeapon melee = GetOrAdd<MeleeWeapon>(root);
 			melee.Data = meleeData;
@@ -462,6 +509,18 @@ public static class PrototypeArenaBuilder
 	{
 		T component = go.GetComponent<T>();
 		return component != null ? component : go.AddComponent<T>();
+	}
+
+	// the player has one Firearm component per weapon, told apart by their data asset
+	private static Firearm GetOrAddFirearm(GameObject root, FirearmData data)
+	{
+		foreach (Firearm existing in root.GetComponents<Firearm>())
+		{
+			if (existing.Data == data) return existing;
+		}
+		Firearm firearm = root.AddComponent<Firearm>();
+		firearm.Data = data;
+		return firearm;
 	}
 
 	private static Transform GetOrCreateChild(Transform parent, string name, Vector3 localPosition)
