@@ -22,6 +22,7 @@ public static class PrototypeArenaBuilder
 	private const string DodgeDataPath = "Assets/Data/Player/Dodge.asset";
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	private const string AudioFolder = "Assets/Audio";
+	private const string PickupClipName = "Magic Spell_Coins_2.wav";
 
 	private const string ArenaRootName = "PrototypeArena";
 	private const string FollowCameraName = "PlayerFollowCamera";
@@ -195,7 +196,16 @@ public static class PrototypeArenaBuilder
 	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, Color color, Material material)
 	{
 		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-		if (existing != null) return existing.GetComponent<Pickup>();
+		if (existing != null)
+		{
+			Pickup existingPickup = existing.GetComponent<Pickup>();
+			if (existingPickup.PickupClip == null)
+			{
+				existingPickup.PickupClip = LoadClip(PickupClipName);
+				EditorUtility.SetDirty(existingPickup);
+			}
+			return existingPickup;
+		}
 
 		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
 
@@ -229,6 +239,7 @@ public static class PrototypeArenaBuilder
 		pickup.Amount = amount;
 		pickup.Color = color;
 		pickup.Visual = meshRenderer;
+		pickup.PickupClip = LoadClip(PickupClipName);
 
 		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
 		Object.DestroyImmediate(root);

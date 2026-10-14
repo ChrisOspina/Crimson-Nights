@@ -190,7 +190,7 @@ MonoBehaviour:
   RespawnTime: 20
   Visual: {fileID: 4389177990063714957}
   Color: {r: 0.9, g: 0.1, b: 0.15, a: 1}
-  PickupClip: {fileID: 0}
+  PickupClip: {fileID: 8300000, guid: 3dd52141ee1ddeb4d8fff5dad193e63e, type: 3}
   BobHeight: 0.12
   BobSpeed: 2
   SpinSpeed: 90
