@@ -14,7 +14,9 @@ public static class PrototypeArenaBuilder
 	private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 	private const string PlayerPrefabPath = "Assets/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
 	private const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
+	// small common heal (the jar) and big rare heal (the kit)
 	private const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
+	private const string HealthKitPickupPrefabPath = "Assets/Prefabs/Pickups/HealthKitPickup_Proto.prefab";
 	private const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
 	private const string ShotgunDataPath = "Assets/Data/Weapons/RelicShotgun.asset";
@@ -36,6 +38,10 @@ public static class PrototypeArenaBuilder
 	private const string RevolverRoundIconPath = "Assets/Textures/UI/RoundIcon_Revolver.png";
 	private const string ShotgunRoundIconPath = "Assets/Textures/UI/RoundIcon_Shotgun.png";
 	private const string EjectPortName = "EjectPort";
+	// health pickup models (Built-in RP packs whose materials were converted to URP/Lit by hand); the red
+	// variants, to match the health bar. Without them the pickups stay glowing spheres
+	private const string HealthJarModelPath = "Assets/First aid jar/Prefabs/Firstaid_2.prefab";
+	private const string HealthKitModelPath = "Assets/GeeKay3D/First-Aid-Set/Assets/Prefabs/FirstAidKit_Red.prefab";
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	private const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";
@@ -111,8 +117,12 @@ public static class PrototypeArenaBuilder
 		SetupRounds(shotgunData, shotgunShell, ShotgunCasingPrefabPath, ShotgunRoundIconPath, 0.075f);
 
 		GameObject enemyPrefab = GetOrCreateEnemyPrefab(enemyData, enemyMat);
-		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, new Color(0.9f, 0.1f, 0.15f), fxMat, PickupClipName);
-		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat, AmmoPickupClipName);
+		Color healthColor = new Color(0.9f, 0.1f, 0.15f);
+		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, 20f, healthColor, fxMat, PickupClipName);
+		Pickup healthKitPickup = GetOrCreatePickupPrefab(HealthKitPickupPrefabPath, Pickup.Kind.Health, 60, 45f, healthColor, fxMat, PickupClipName);
+		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, 20f, new Color(1f, 0.75f, 0.25f), fxMat, AmmoPickupClipName);
+		SetupPickupModel(HealthPickupPrefabPath, HealthJarModelPath, 0.28f, new Color(1f, 0.3f, 0.3f), 0.8f);
+		SetupPickupModel(HealthKitPickupPrefabPath, HealthKitModelPath, 0.45f, new Color(1f, 0.3f, 0.3f), 1.6f);
 		SetupAmmoPickupModel(shotgunShell, revolverRound);
 		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
 		StyleData styleData = GetOrCreateAsset<StyleData>(StyleDataPath, out _);
@@ -120,7 +130,7 @@ public static class PrototypeArenaBuilder
 		SetupPlayerPrefab(revolverData, shotgunData, meleeData, dodgeData, styleData, revolverMat, woodMat, fistMat);
 		AssetDatabase.SaveAssets();
 
-		Transform cameraRoot = BuildScene(enemyPrefab, healthPickup, ammoPickup, floorMat, wallMat, coverMat);
+		Transform cameraRoot = BuildScene(enemyPrefab, healthPickup, healthKitPickup, ammoPickup, floorMat, wallMat, coverMat);
 		SetupCameras(cameraRoot);
 
 		EditorSceneManager.MarkSceneDirty(scene);
@@ -230,20 +240,28 @@ public static class PrototypeArenaBuilder
 		return prefab;
 	}
 
-	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, Color color, Material material, string clipName)
+	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, float respawnTime, Color color, Material material, string clipName)
 	{
 		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
 		if (existing != null)
 		{
 			// the builder owns pickup sounds: an existing prefab is switched to clipName. Saved straight away,
-			// since SetupAmmoPickupModel reloads the prefab from disk and would otherwise drop the change
+			// since the model setup reloads the prefab from disk and would otherwise drop the change
 			Pickup existingPickup = existing.GetComponent<Pickup>();
+			bool changed = false;
 			AudioClip clip = LoadClip(clipName);
 			if (clip != null && existingPickup.PickupClip != clip)
 			{
 				existingPickup.PickupClip = clip;
-				PrefabUtility.SavePrefabAsset(existing);
+				changed = true;
 			}
+			// Visual used to be a Renderer field, which a Transform field can't read back
+			if (existingPickup.Visual == null && existing.transform.Find("Visual") != null)
+			{
+				existingPickup.Visual = existing.transform.Find("Visual");
+				changed = true;
+			}
+			if (changed) PrefabUtility.SavePrefabAsset(existing);
 			return existingPickup;
 		}
 
@@ -277,8 +295,9 @@ public static class PrototypeArenaBuilder
 		var pickup = root.AddComponent<Pickup>();
 		pickup.Type = kind;
 		pickup.Amount = amount;
+		pickup.RespawnTime = respawnTime;
 		pickup.Color = color;
-		pickup.Visual = meshRenderer;
+		pickup.Visual = visual.transform;
 		pickup.PickupClip = LoadClip(clipName);
 
 		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -670,8 +689,7 @@ public static class PrototypeArenaBuilder
 		return texture;
 	}
 
-	// Swaps the ammo pickup's glowing sphere for a shotgun shell flanked by two pistol rounds, with a faint
-	// gold light. The shell is the pickup's Visual, so the rounds and light bob and spin with it
+	// Swaps the ammo pickup's glowing sphere for a shotgun shell flanked by two pistol rounds, with a faint gold light
 	private static void SetupAmmoPickupModel(RoundModel shell, RoundModel round)
 	{
 		if (shell == null || round == null) return;
@@ -679,32 +697,13 @@ public static class PrototypeArenaBuilder
 		GameObject root = PrefabUtility.LoadPrefabContents(AmmoPickupPrefabPath);
 		try
 		{
-			Transform oldVisual = root.transform.Find("Visual");
-			if (oldVisual != null) Object.DestroyImmediate(oldVisual.gameObject);
+			Transform visual = ReplacePickupVisual(root, new Color(1f, 0.75f, 0.25f), 1.2f);
 
-			const float baseHeight = 0.42f;
-			GameObject visual = CreateRoundObject("Visual", root.transform, shell, 0.24f, new Vector3(0f, baseHeight, 0f), Quaternion.identity);
-			GameObject left = CreateRoundObject("RoundL", root.transform, round, 0.15f, new Vector3(-0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, 12f));
-			GameObject right = CreateRoundObject("RoundR", root.transform, round, 0.15f, new Vector3(0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, -12f));
-
-			var glow = new GameObject("Glow");
-			glow.layer = IgnoreRaycastLayer;
-			glow.transform.SetParent(root.transform, false);
-			glow.transform.localPosition = new Vector3(0f, 0.55f, 0f);
-			Light light = glow.AddComponent<Light>();
-			light.type = LightType.Point;
-			light.color = new Color(1f, 0.75f, 0.25f);
-			light.range = 1.5f;
-			light.intensity = 1.2f;
-			light.shadows = LightShadows.None;
-
-			left.transform.SetParent(visual.transform, true);
-			right.transform.SetParent(visual.transform, true);
-			glow.transform.SetParent(visual.transform, true);
-
-			Pickup pickup = root.GetComponent<Pickup>();
-			pickup.Visual = visual.GetComponent<MeshRenderer>();
-			pickup.TintVisual = false;
+			// bases a little below the visual's centre, so the cluster's middle is where the sphere was
+			const float baseHeight = -0.18f;
+			CreateRoundObject("Shell", visual, shell, 0.24f, new Vector3(0f, baseHeight, 0f), Quaternion.identity);
+			CreateRoundObject("RoundL", visual, round, 0.15f, new Vector3(-0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, 12f));
+			CreateRoundObject("RoundR", visual, round, 0.15f, new Vector3(0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, -12f));
 
 			PrefabUtility.SaveAsPrefabAsset(root, AmmoPickupPrefabPath);
 		}
@@ -714,9 +713,96 @@ public static class PrototypeArenaBuilder
 		}
 	}
 
+	// Swaps a pickup's visual for a copy of a model prefab, scaled so its longest side is `size` metres and
+	// centred on the visual so it spins in place, plus a faint light
+	private static void SetupPickupModel(string pickupPath, string modelPath, float size, Color glowColor, float glowIntensity)
+	{
+		GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+		if (source == null)
+		{
+			Debug.LogWarning("[PrototypeArenaBuilder] Pickup model not found at " + modelPath + ", keeping the current visual.");
+			return;
+		}
+
+		GameObject root = PrefabUtility.LoadPrefabContents(pickupPath);
+		try
+		{
+			Transform visual = ReplacePickupVisual(root, glowColor, glowIntensity);
+
+			// a plain copy rather than a prefab instance, so the builder owns it; keeps the model's own rotation
+			GameObject model = Object.Instantiate(source, visual);
+			model.name = "Model";
+			model.transform.localPosition = Vector3.zero;
+			model.transform.localRotation = source.transform.localRotation;
+			model.transform.localScale = source.transform.localScale;
+
+			// no colliders or physics: the pickup's own trigger does the collecting
+			foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
+			foreach (Rigidbody body in model.GetComponentsInChildren<Rigidbody>(true)) Object.DestroyImmediate(body);
+			foreach (Transform t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = IgnoreRaycastLayer;
+
+			// the model's mesh bounds in the visual's space, at its native size
+			Bounds bounds = new Bounds();
+			bool first = true;
+			foreach (MeshFilter meshFilter in model.GetComponentsInChildren<MeshFilter>(true))
+			{
+				if (meshFilter.sharedMesh == null) continue;
+				Bounds meshBounds = meshFilter.sharedMesh.bounds;
+				for (int i = 0; i < 8; i++)
+				{
+					Vector3 corner = meshBounds.center + Vector3.Scale(meshBounds.extents,
+						new Vector3((i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f));
+					Vector3 point = visual.InverseTransformPoint(meshFilter.transform.TransformPoint(corner));
+					if (first) bounds = new Bounds(point, Vector3.zero);
+					else bounds.Encapsulate(point);
+					first = false;
+				}
+			}
+
+			float longest = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
+			float scale = longest > 0f ? size / longest : 1f;
+			model.transform.localScale = source.transform.localScale * scale;
+			model.transform.localPosition = -bounds.center * scale;
+
+			PrefabUtility.SaveAsPrefabAsset(root, pickupPath);
+		}
+		finally
+		{
+			PrefabUtility.UnloadPrefabContents(root);
+		}
+	}
+
+	// Replaces a pickup's Visual with an empty one floating where the sphere was, holding a small point light.
+	// Models go under it; the pickup bobs, spins and hides it as a whole, and no longer tints it
+	private static Transform ReplacePickupVisual(GameObject root, Color glowColor, float glowIntensity)
+	{
+		Transform oldVisual = root.transform.Find("Visual");
+		if (oldVisual != null) Object.DestroyImmediate(oldVisual.gameObject);
+
+		var visual = new GameObject("Visual").transform;
+		visual.gameObject.layer = IgnoreRaycastLayer;
+		visual.SetParent(root.transform, false);
+		visual.localPosition = new Vector3(0f, 0.6f, 0f);
+
+		var glow = new GameObject("Glow");
+		glow.layer = IgnoreRaycastLayer;
+		glow.transform.SetParent(visual, false);
+		Light light = glow.AddComponent<Light>();
+		light.type = LightType.Point;
+		light.color = glowColor;
+		light.range = 1.5f;
+		light.intensity = glowIntensity;
+		light.shadows = LightShadows.None;
+
+		Pickup pickup = root.GetComponent<Pickup>();
+		pickup.Visual = visual;
+		pickup.TintVisual = false;
+		return visual;
+	}
+
 	// ---------------------------------------------------------------- scene
 
-	private static Transform BuildScene(GameObject enemyPrefab, Pickup healthPickup, Pickup ammoPickup, Material floorMat, Material wallMat, Material coverMat)
+	private static Transform BuildScene(GameObject enemyPrefab, Pickup healthPickup, Pickup healthKitPickup, Pickup ammoPickup, Material floorMat, Material wallMat, Material coverMat)
 	{
 		// clear anything a previous run created
 		GameObject oldArena = GameObject.Find(ArenaRootName);
@@ -794,13 +880,16 @@ public static class PrototypeArenaBuilder
 		spawner.EnemyPrefab = enemyPrefab;
 		spawner.SpawnPoints = spawnPoints;
 		spawner.HealthDropPrefab = healthPickup;
+		spawner.MajorHealthDropPrefab = healthKitPickup;
 		spawner.AmmoDropPrefab = ammoPickup;
 
-		// placed pickups (respawning): health on the platform and behind cover, ammo by the pillars
+		// placed pickups (respawning): the health kit up on the platform, jars behind cover and by a pillar,
+		// ammo by the other pillars
 		Transform pickupRoot = new GameObject("Pickups").transform;
 		pickupRoot.SetParent(arena.transform, false);
-		PlacePickup(pickupRoot, healthPickup, new Vector3(-13f, 1.5f, -13f));
+		PlacePickup(pickupRoot, healthKitPickup, new Vector3(-13f, 1.5f, -13f));
 		PlacePickup(pickupRoot, healthPickup, new Vector3(0f, 0f, 11.5f));
+		PlacePickup(pickupRoot, healthPickup, new Vector3(-6f, 0f, -7.5f));
 		PlacePickup(pickupRoot, ammoPickup, new Vector3(6f, 0f, -7.5f));
 		PlacePickup(pickupRoot, ammoPickup, new Vector3(-6f, 0f, 7.5f));
 		PlacePickup(pickupRoot, ammoPickup, new Vector3(13.5f, 0f, 0f));
