@@ -167,9 +167,9 @@ Useful for:
 
 ---
 
-## Melee Weapon — Hunter's Relic Blade
+## Melee — Fists
 
-A supernatural sword or similar weapon.
+Bare-handed punches with the off hand. No sword.
 
 The melee system should eventually support:
 
@@ -493,8 +493,8 @@ Vampire Thrall.
 ### One Weapon
 Revolver.
 
-### One Melee Weapon
-Relic blade.
+### One Melee Attack
+Punches (jab and heavy haymaker).
 
 ### One Movement Ability
 Dodge.

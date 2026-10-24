@@ -18,9 +18,15 @@ public static class PrototypeArenaBuilder
 	private const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
 	private const string ShotgunDataPath = "Assets/Data/Weapons/RelicShotgun.asset";
-	private const string MeleeDataPath = "Assets/Data/Weapons/RelicBlade.asset";
+	private const string MeleeDataPath = "Assets/Data/Weapons/Fists.asset";
 	private const string EnemyDataPath = "Assets/Data/Enemies/VampireThrall_Proto.asset";
 	private const string DodgeDataPath = "Assets/Data/Player/Dodge.asset";
+	private const string StyleDataPath = "Assets/Data/Player/Style.asset";
+	// gun models from Low Poly Weapons VOL.1; the cube viewmodels are used if these are missing
+	private const string RevolverModelPath = "Assets/Low Poly Weapons VOL.1/Prefabs/M1911.prefab";
+	private const string ShotgunModelPath = "Assets/Low Poly Weapons VOL.1/Prefabs/Bennelli_M4.prefab";
+	// the pack's guns point down -Z, so they're turned to face the camera's +Z
+	private const float GunModelYaw = 180f;
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	private const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";
@@ -59,25 +65,30 @@ public static class PrototypeArenaBuilder
 		Material wallMat = GetOrCreateMaterial("Arena_Wall", LitShader, new Color(0.2f, 0.18f, 0.2f));
 		Material coverMat = GetOrCreateMaterial("Arena_Cover", LitShader, new Color(0.45f, 0.4f, 0.36f));
 		Material revolverMat = GetOrCreateMaterial("Viewmodel_Revolver", LitShader, new Color(0.15f, 0.15f, 0.17f));
-		Material bladeMat = GetOrCreateMaterial("Viewmodel_Blade", LitShader, new Color(0.75f, 0.78f, 0.85f));
+		Material fistMat = GetOrCreateMaterial("Viewmodel_Fist", LitShader, new Color(0.62f, 0.45f, 0.36f));
 		Material woodMat = GetOrCreateMaterial("Viewmodel_Wood", LitShader, new Color(0.3f, 0.16f, 0.08f));
 
 		FirearmData revolverData = GetOrCreateAsset<FirearmData>(RevolverDataPath, out bool revolverCreated);
 		if (revolverCreated) revolverData.HitMask = ~(1 << PlayerLayer);
 		if (string.IsNullOrEmpty(revolverData.DisplayName)) revolverData.DisplayName = "Revolver";
 		if (revolverData.FxMaterial == null) revolverData.FxMaterial = fxMat;
-		if (revolverData.ImpactClip == null) revolverData.ImpactClip = LoadClip("Bullet Impact 21.wav");
+		if (revolverData.ImpactClip == null) revolverData.ImpactClip = LoadClip("ribhavagrawal-bulletshot-impact-sound-effect-230462.mp3");
+		if (revolverData.FireClip == null) revolverData.FireClip = LoadClip("freesound_community-single-pistol-gunshot-33-37187.mp3");
+		if (revolverData.ReloadClip == null) revolverData.ReloadClip = LoadClip("freesound_community-revolver-cocking-104722.mp3");
 		EditorUtility.SetDirty(revolverData);
 
 		FirearmData shotgunData = GetOrCreateAsset<FirearmData>(ShotgunDataPath, out bool shotgunCreated);
 		if (shotgunCreated) ApplyShotgunDefaults(shotgunData);
 		if (shotgunData.FxMaterial == null) shotgunData.FxMaterial = fxMat;
-		if (shotgunData.ImpactClip == null) shotgunData.ImpactClip = LoadClip("Bullet Impact 21.wav");
+		if (shotgunData.ImpactClip == null) shotgunData.ImpactClip = LoadClip("finntastico-impact-152508.mp3");
+		if (shotgunData.FireClip == null) shotgunData.FireClip = LoadClip("shotgun.mp3");
+		if (shotgunData.ReloadClip == null) shotgunData.ReloadClip = LoadClip("freesound_community-realistic-shotgun-cocking-sound-38640.mp3");
 		EditorUtility.SetDirty(shotgunData);
 
 		MeleeData meleeData = GetOrCreateAsset<MeleeData>(MeleeDataPath, out bool meleeCreated);
 		if (meleeCreated) meleeData.HitMask = 1 << EnemyLayer;
-		if (meleeData.HitClip == null) meleeData.HitClip = LoadClip("Bloody punch.wav");
+		if (meleeData.HitClip == null) meleeData.HitClip = LoadClip("Indiana Jones Punch.wav");
+		if (meleeData.HeavyHitClip == null) meleeData.HeavyHitClip = LoadClip("dragon-studio-hard-punch-sfx-515251.mp3");
 		EditorUtility.SetDirty(meleeData);
 
 		EnemyData enemyData = GetOrCreateAsset<EnemyData>(EnemyDataPath, out _);
@@ -88,8 +99,9 @@ public static class PrototypeArenaBuilder
 		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, new Color(0.9f, 0.1f, 0.15f), fxMat);
 		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat);
 		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
+		StyleData styleData = GetOrCreateAsset<StyleData>(StyleDataPath, out _);
 
-		SetupPlayerPrefab(revolverData, shotgunData, meleeData, dodgeData, revolverMat, woodMat, bladeMat);
+		SetupPlayerPrefab(revolverData, shotgunData, meleeData, dodgeData, styleData, revolverMat, woodMat, fistMat);
 		AssetDatabase.SaveAssets();
 
 		Transform cameraRoot = BuildScene(enemyPrefab, healthPickup, ammoPickup, floorMat, wallMat, coverMat);
@@ -276,8 +288,8 @@ public static class PrototypeArenaBuilder
 		data.KickAngle = 18f;
 	}
 
-	private static void SetupPlayerPrefab(FirearmData revolverData, FirearmData shotgunData, MeleeData meleeData, DodgeData dodgeData,
-		Material metalMat, Material woodMat, Material bladeMat)
+	private static void SetupPlayerPrefab(FirearmData revolverData, FirearmData shotgunData, MeleeData meleeData, DodgeData dodgeData, StyleData styleData,
+		Material metalMat, Material woodMat, Material fistMat)
 	{
 		GameObject root = PrefabUtility.LoadPrefabContents(PlayerPrefabPath);
 		try
@@ -287,33 +299,36 @@ public static class PrototypeArenaBuilder
 
 			Transform cameraRoot = root.transform.Find("PlayerCameraRoot");
 
-			// revolver viewmodel: pivot -> body cube + muzzle point
+			// revolver viewmodel: pivot -> M1911 model (or placeholder cubes) + muzzle point
 			Transform revolverPivot = GetOrCreateChild(cameraRoot, "RevolverViewmodel", new Vector3(0.25f, -0.22f, 0.45f));
-			if (revolverPivot.Find("Body") == null)
+			Transform muzzle = GetOrCreateChild(revolverPivot, "Muzzle", new Vector3(0f, 0.02f, 0.17f));
+			if (!SetupGunModel(revolverPivot, muzzle, RevolverModelPath, 0.26f) && revolverPivot.Find("Body") == null)
 			{
 				CreateViewmodelCube(revolverPivot, "Body", Vector3.zero, new Vector3(0.07f, 0.12f, 0.3f), metalMat);
 				CreateViewmodelCube(revolverPivot, "Grip", new Vector3(0f, -0.1f, -0.1f), new Vector3(0.06f, 0.14f, 0.07f), metalMat);
 			}
-			Transform muzzle = GetOrCreateChild(revolverPivot, "Muzzle", new Vector3(0f, 0.02f, 0.17f));
 
-			// shotgun viewmodel: side-by-side barrels over a wooden stock, hidden until switched to
+			// shotgun viewmodel: Benelli M4 model (or placeholder cubes), hidden until switched to
 			Transform shotgunPivot = GetOrCreateChild(cameraRoot, "ShotgunViewmodel", new Vector3(0.25f, -0.24f, 0.45f));
-			if (shotgunPivot.Find("BarrelL") == null)
+			Transform shotgunMuzzle = GetOrCreateChild(shotgunPivot, "Muzzle", new Vector3(0f, 0.02f, 0.36f));
+			if (!SetupGunModel(shotgunPivot, shotgunMuzzle, ShotgunModelPath, 0.62f) && shotgunPivot.Find("BarrelL") == null)
 			{
 				CreateViewmodelCube(shotgunPivot, "BarrelL", new Vector3(-0.025f, 0.02f, 0.1f), new Vector3(0.045f, 0.045f, 0.5f), metalMat);
 				CreateViewmodelCube(shotgunPivot, "BarrelR", new Vector3(0.025f, 0.02f, 0.1f), new Vector3(0.045f, 0.045f, 0.5f), metalMat);
 				CreateViewmodelCube(shotgunPivot, "Stock", new Vector3(0f, -0.04f, -0.15f), new Vector3(0.08f, 0.1f, 0.3f), woodMat);
 			}
-			Transform shotgunMuzzle = GetOrCreateChild(shotgunPivot, "Muzzle", new Vector3(0f, 0.02f, 0.36f));
 			shotgunPivot.gameObject.SetActive(false);
 
-			// blade viewmodel: pivot at the hilt, blade extends along +Z
-			Transform bladePivot = GetOrCreateChild(cameraRoot, "BladeViewmodel", new Vector3(-0.3f, -0.3f, 0.4f));
-			if (bladePivot.Find("Blade") == null)
+			// the old relic blade viewmodel, replaced by the fist
+			Transform oldBlade = cameraRoot.Find("BladeViewmodel");
+			if (oldBlade != null) Object.DestroyImmediate(oldBlade.gameObject);
+
+			// off-hand fist viewmodel: knuckles forward, forearm trailing back out of view
+			Transform fistPivot = GetOrCreateChild(cameraRoot, "FistViewmodel", new Vector3(-0.28f, -0.3f, 0.4f));
+			if (fistPivot.Find("Fist") == null)
 			{
-				bladePivot.localRotation = Quaternion.Euler(-55f, 15f, 0f);
-				CreateViewmodelCube(bladePivot, "Blade", new Vector3(0f, 0f, 0.45f), new Vector3(0.03f, 0.06f, 0.8f), bladeMat);
-				CreateViewmodelCube(bladePivot, "Guard", new Vector3(0f, 0f, 0.04f), new Vector3(0.2f, 0.04f, 0.04f), metalMat);
+				CreateViewmodelCube(fistPivot, "Fist", Vector3.zero, new Vector3(0.1f, 0.1f, 0.12f), fistMat);
+				CreateViewmodelCube(fistPivot, "Forearm", new Vector3(-0.01f, -0.02f, -0.2f), new Vector3(0.08f, 0.08f, 0.3f), fistMat);
 			}
 
 			Firearm revolver = GetOrAddFirearm(root, revolverData);
@@ -328,9 +343,10 @@ public static class PrototypeArenaBuilder
 
 			MeleeWeapon melee = GetOrAdd<MeleeWeapon>(root);
 			melee.Data = meleeData;
-			melee.Blade = bladePivot;
+			melee.Fist = fistPivot;
 
 			GetOrAdd<PlayerDodge>(root).Data = dodgeData;
+			GetOrAdd<StyleMeter>(root).Data = styleData;
 
 			GetOrAdd<PlayerHUD>(root);
 
@@ -343,6 +359,73 @@ public static class PrototypeArenaBuilder
 		{
 			PrefabUtility.UnloadPrefabContents(root);
 		}
+	}
+
+	// Replaces everything under a gun pivot (except its muzzle) with a copy of the model, turned to face +Z,
+	// scaled so it's `length` metres long and centred on the pivot. The muzzle goes on the model's front face.
+	// Returns false if the model asset is missing.
+	private static bool SetupGunModel(Transform pivot, Transform muzzle, string modelPath, float length)
+	{
+		GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+		if (source == null)
+		{
+			Debug.LogWarning("[PrototypeArenaBuilder] Gun model not found at " + modelPath + ", using placeholder cubes.");
+			return false;
+		}
+
+		for (int i = pivot.childCount - 1; i >= 0; i--)
+		{
+			Transform child = pivot.GetChild(i);
+			if (child != muzzle) Object.DestroyImmediate(child.gameObject);
+		}
+
+		// a plain copy rather than a prefab instance, so the builder owns it
+		GameObject model = Object.Instantiate(source, pivot);
+		model.name = "Model";
+		model.transform.localPosition = Vector3.zero;
+		model.transform.localRotation = Quaternion.Euler(0f, GunModelYaw, 0f);
+		model.transform.localScale = Vector3.one;
+
+		foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
+		foreach (Transform t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = PlayerLayer;
+		foreach (MeshRenderer meshRenderer in model.GetComponentsInChildren<MeshRenderer>(true))
+		{
+			meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+		}
+
+		// every vertex in the pivot's space, at the model's native size
+		var points = new System.Collections.Generic.List<Vector3>();
+		foreach (MeshFilter meshFilter in model.GetComponentsInChildren<MeshFilter>(true))
+		{
+			if (meshFilter.sharedMesh == null) continue;
+			foreach (Vector3 vertex in meshFilter.sharedMesh.vertices)
+			{
+				points.Add(pivot.InverseTransformPoint(meshFilter.transform.TransformPoint(vertex)));
+			}
+		}
+		if (points.Count == 0) return true;
+
+		Bounds bounds = new Bounds(points[0], Vector3.zero);
+		foreach (Vector3 point in points) bounds.Encapsulate(point);
+
+		float scale = bounds.size.z > 0f ? length / bounds.size.z : 1f;
+		Vector3 offset = -bounds.center * scale;
+		model.transform.localScale = Vector3.one * scale;
+		model.transform.localPosition = offset;
+
+		// muzzle: the average of the frontmost few percent of the vertices (the barrel's end face)
+		float frontLimit = bounds.max.z - bounds.size.z * 0.03f;
+		Vector3 front = Vector3.zero;
+		int frontCount = 0;
+		foreach (Vector3 point in points)
+		{
+			if (point.z < frontLimit) continue;
+			front += point;
+			frontCount++;
+		}
+		front /= Mathf.Max(frontCount, 1);
+		muzzle.localPosition = front * scale + offset + Vector3.forward * 0.01f;
+		return true;
 	}
 
 	private static void CreateViewmodelCube(Transform parent, string name, Vector3 localPosition, Vector3 scale, Material material)

@@ -110,7 +110,7 @@
         <mxCell id="ce20" value="enables" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;" edge="1" parent="1" source="switch" target="rev">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="mel" value="&lt;b&gt;MeleeWeapon&lt;/b&gt;&lt;br&gt;tap = light · hold = heavy&lt;br&gt;OverlapSphere on Enemy layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="mel" value="&lt;b&gt;MeleeWeapon&lt;/b&gt; (fists)&lt;br&gt;tap = jab/cross/hook combo · hold = haymaker&lt;br&gt;OverlapSphere on Enemy layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="40" y="720" width="180" height="80" as="geometry" />
         </mxCell>
         <mxCell id="revd" value="&lt;b&gt;FirearmData&lt;/b&gt; (SO) ×2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
@@ -122,7 +122,7 @@
         <mxCell id="hp" value="&lt;b&gt;Health&lt;/b&gt;&lt;br&gt;Damaged(DamageInfo) · Died&lt;br&gt;&lt;i&gt;player &amp;amp; enemies&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="290" y="660" width="190" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="hud" value="&lt;b&gt;PlayerHUD&lt;/b&gt;&lt;br&gt;runtime uGUI: health, ammo,&lt;br&gt;crosshair, damage flash" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="hud" value="&lt;b&gt;PlayerHUD&lt;/b&gt;&lt;br&gt;runtime uGUI: health, ammo,&lt;br&gt;crosshair, damage flash, style rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="540" y="620" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="death" value="&lt;b&gt;PlayerDeath&lt;/b&gt;&lt;br&gt;disable control → reload scene" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
@@ -194,10 +194,10 @@
         <mxCell id="p1" value="&lt;b&gt;Weapon switching&lt;/b&gt; ✓ M3&lt;br&gt;WeaponSwitcher · revolver ↔ relic shotgun" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="270" y="970" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="p2" value="&lt;b&gt;Combo system&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p2" value="&lt;b&gt;Combo system&lt;/b&gt; ✓&lt;br&gt;MeleeData.LightCombo: jab → cross → hook&lt;br&gt;hold = haymaker · input buffer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="500" y="970" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="p3" value="&lt;b&gt;Style meter&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p3" value="&lt;b&gt;StyleMeter&lt;/b&gt; ✓ (StyleData)&lt;br&gt;D → SSS from weapon Hit(AttackHit),&lt;br&gt;PerfectDodged, Damaged · shown by PlayerHUD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="730" y="970" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="p4" value="&lt;b&gt;Lunge + stagger thresholds&lt;/b&gt; ✓ M2&lt;br&gt;DamageInfo.Stagger vs Attack.StaggerThreshold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">

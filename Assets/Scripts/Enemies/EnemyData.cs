@@ -33,7 +33,7 @@ public class EnemyData : ScriptableObject
 	[Header("Attacks")]
 	[Tooltip("Close-range swipe. Low stagger threshold, so a revolver shot interrupts it")]
 	public Attack Strike = new Attack();
-	[Tooltip("Mid-range dash. High stagger threshold: only a shotgun blast or heavy blade hit interrupts it")]
+	[Tooltip("Mid-range dash. High stagger threshold: only a shotgun blast or heavy punch interrupts it")]
 	public Attack Lunge = new Attack
 	{
 		MinRange = 4f,

@@ -4,7 +4,7 @@ using UnityEngine.AI;
 
 // Prototype melee enemy (Vampire Thrall stand-in): chase, then one of two telegraphed attacks, then recover.
 // Strike: close-range swipe, interrupted by any revolver shot. Lunge: mid-range dash with a longer red-orange
-// telegraph that only a high-stagger hit (shotgun, heavy blade) interrupts. Hits below the current stagger
+// telegraph that only a high-stagger hit (shotgun, heavy punch) interrupts. Hits below the current stagger
 // threshold still do damage but don't interrupt.
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Health))]

@@ -5,7 +5,7 @@ using UnityEngine;
 
 // Cycles between the player's firearms (Q / scroll / gamepad Y). Only the equipped Firearm is enabled
 // and visible; switching lowers the old viewmodel, then raises the new one, and nothing fires meanwhile.
-// The relic blade has its own button and isn't part of this.
+// Punches have their own button and isn't part of this.
 [RequireComponent(typeof(StarterAssetsInputs))]
 public class WeaponSwitcher : MonoBehaviour
 {

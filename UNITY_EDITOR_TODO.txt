@@ -29,9 +29,14 @@ PLAYTEST (press Play, click in the Game view to lock the mouse)
 [ ] Shooting a cube flashes it white and pushes it back slightly; 3 shots kill it
 [ ] Cube flashes YELLOW before it hits you - hitting it during the flash cancels the attack
 [ ] Getting hit: red screen flash, health bar drops (15 per hit)
-[ ] Space tap: quick blade swing; 3 swings kill a cube
-[ ] Space hold: crosshair turns orange and blade pulls back; release for a heavy hit with big knockback (2 kill)
+[ ] Space taps chain JAB -> CROSS -> HOOK (the hook hits harder, louder and knocks back);
+    pause for ~half a second and the chain starts again from the jab. Jab+cross+hook kills a cube
+[ ] Space hold: crosshair turns orange and the fist pulls back; release for a heavy haymaker with big knockback (2 kill)
 [ ] Clear a wave: next wave (5, then 7) starts ~3 s later
+[ ] Style meter: a rank letter appears on the right once you land a hit and climbs as you fight.
+    Callouts show for HOOK / HAYMAKER, SWITCH UP (hit with a different weapon than last time),
+    DOUBLE KILL, PERFECT DODGE. Spamming one gun climbs slowly; getting hit drops it; it drains
+    after ~3 s without scoring
 [ ] Let yourself die: "YOU DIED" appears and the scene restarts after 2 s
 [ ] Ramp onto the platform works; enemies can follow you up
 
@@ -40,20 +45,31 @@ IF SOMETHING'S WRONG
 [ ] Enemies don't move: look for NavMesh warnings in the Console.
 [ ] Clicking does nothing: click inside the Game view first so the cursor locks.
 [ ] Screen is black / no camera: check Main Camera has CinemachineBrain and PlayerFollowCamera exists.
-[ ] Blade or gun looks badly placed: select PlayerCapsule > PlayerCameraRoot >
-    RevolverViewmodel / BladeViewmodel and move them; then apply the prefab override
+[ ] Fist or gun looks badly placed: select PlayerCapsule > PlayerCameraRoot >
+    RevolverViewmodel / FistViewmodel and move them; then apply the prefab override
     (Overrides dropdown at the top of the Inspector > Apply All).
 [ ] Copy any red Console errors and send them to Claude.
 
 TUNING (optional, after the first playtest)
 -------------------------------------------
 [ ] Assets/Data/Weapons/Revolver.asset - damage, fire rate, magazine size, reload time
-[ ] Assets/Data/Weapons/RelicBlade.asset - light/heavy damage, reach, cooldowns, heavy hold time
+[ ] Assets/Data/Player/Style.asset - points per hit/kill/finisher, repetition penalty, decay, damage loss
+[ ] Assets/Data/Weapons/Fists.asset - combo punches (LightCombo), ComboWindow, heavy damage, reach, cooldowns, heavy hold time
 [ ] Assets/Data/Enemies/VampireThrall_Proto.asset - health, speed, wind-up time, damage
 [ ] PrototypeArena > EnemySpawner - wave sizes, delay between waves
-[ ] PlayerCapsule > MeleeWeapon - WindUpEuler / SwingEndEuler swing poses
+[ ] PlayerCapsule > Fists.asset PunchOffset on each punch, and MeleeWeapon PullBackOffset
     (Data assets change live even in Play Mode and keep their values after you stop.
      Component values changed in Play Mode are lost when you stop.)
+
+PHASE 2 - STILL TO BUILD
+------------------------
+[x] Basic combo system (jab -> cross -> hook, hold for haymaker)
+[x] Style meter (D to SSS, right edge of the screen)
+[x] Fire and reload sounds for the revolver and shotgun; light/heavy punch hit sounds
+[x] Unique bullet impact sound for each gun; hard punch for the heavy hit
+[ ] Still missing: empty click for both guns, and a punch whoosh.
+[x] Gun models: M1911 (revolver slot) and Bennelli_M4 (shotgun slot) from Low Poly Weapons VOL.1
+[ ] Find a real revolver, a double-barrel shotgun and a hand/fist model to replace the stand-ins
 
 NOTES
 -----

@@ -24,6 +24,8 @@ public class Firearm : MonoBehaviour
 
 	// raised whenever Ammo, ReserveAmmo or IsReloading changes (for the HUD)
 	public event Action Changed;
+	// raised once per target damaged by a shot (for the style meter)
+	public event Action<AttackHit> Hit;
 
 	private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -173,11 +175,13 @@ public class Firearm : MonoBehaviour
 		float multiplier = _dodge != null ? _dodge.DamageMultiplier : 1f;
 		foreach (KeyValuePair<Health, PelletHits> pair in _pelletHits)
 		{
+			if (pair.Key.IsDead) continue;
 			int count = pair.Value.Count;
 			Vector3 point = pair.Value.Point;
 			Vector3 direction = (point - origin).normalized;
 			pair.Key.TakeDamage(new DamageInfo(Data.Damage * count * multiplier, point, direction,
 				Data.Knockback * count, gameObject, Data.Stagger * count));
+			Hit?.Invoke(new AttackHit(pair.Key, Data.DisplayName, Data.DisplayName, false, false));
 		}
 		_pelletHits.Clear();
 

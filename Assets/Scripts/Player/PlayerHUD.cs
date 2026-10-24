@@ -12,11 +12,21 @@ public class PlayerHUD : MonoBehaviour
 	public Color CounterColor = new Color(0.55f, 0.85f, 1f, 1f);
 	public Color PerfectDodgeFlashColor = new Color(0.75f, 0.9f, 1f, 1f);
 
+	[Header("Style Meter")]
+	[Tooltip("Rank colour at D, blending towards StyleHighColor at A")]
+	public Color StyleLowColor = new Color(0.7f, 0.7f, 0.72f, 1f);
+	public Color StyleHighColor = new Color(0.85f, 0.08f, 0.12f, 1f);
+	[Tooltip("Rank colour from S upwards")]
+	public Color StyleTopColor = new Color(1f, 0.78f, 0.3f, 1f);
+	[Tooltip("Seconds a callout (\"FINISHER\", \"DOUBLE KILL\"...) stays on screen")]
+	public float CalloutTime = 1.2f;
+
 	private Health _health;
 	private Firearm[] _firearms;
 	private WeaponSwitcher _switcher;
 	private MeleeWeapon _melee;
 	private PlayerDodge _dodge;
+	private StyleMeter _style;
 
 	private RectTransform _healthFill;
 	private Text _ammoText;
@@ -28,6 +38,15 @@ public class PlayerHUD : MonoBehaviour
 	private Text _deathText;
 	private float _flashAlpha;
 
+	private GameObject _styleRoot;
+	private Text _styleLetter;
+	private Text _styleName;
+	private RectTransform _styleFill;
+	private Image _styleFillImage;
+	private Text _styleCallout;
+	private float _calloutEndTime;
+	private float _rankPunch; // 1 right after a rank change, decays to 0
+
 	private void Awake()
 	{
 		_health = GetComponent<Health>();
@@ -35,6 +54,7 @@ public class PlayerHUD : MonoBehaviour
 		_switcher = GetComponent<WeaponSwitcher>();
 		_melee = GetComponent<MeleeWeapon>();
 		_dodge = GetComponent<PlayerDodge>();
+		_style = GetComponent<StyleMeter>();
 		BuildUI();
 	}
 
@@ -45,6 +65,11 @@ public class PlayerHUD : MonoBehaviour
 		foreach (Firearm firearm in _firearms) firearm.Changed += RefreshAmmo;
 		if (_switcher != null) _switcher.Switched += OnSwitched;
 		if (_dodge != null) _dodge.PerfectDodged += OnPerfectDodged;
+		if (_style != null)
+		{
+			_style.RankChanged += OnRankChanged;
+			_style.Callout += OnStyleCallout;
+		}
 	}
 
 	private void OnDisable()
@@ -54,6 +79,11 @@ public class PlayerHUD : MonoBehaviour
 		foreach (Firearm firearm in _firearms) firearm.Changed -= RefreshAmmo;
 		if (_switcher != null) _switcher.Switched -= OnSwitched;
 		if (_dodge != null) _dodge.PerfectDodged -= OnPerfectDodged;
+		if (_style != null)
+		{
+			_style.RankChanged -= OnRankChanged;
+			_style.Callout -= OnStyleCallout;
+		}
 	}
 
 	private void Start()
@@ -80,6 +110,55 @@ public class PlayerHUD : MonoBehaviour
 		_crosshair.color = heavyReady ? HeavyReadyColor : counter ? CounterColor : CrosshairColor;
 		float size = heavyReady ? 12f : 6f;
 		_crosshair.rectTransform.sizeDelta = Vector2.Lerp(_crosshair.rectTransform.sizeDelta, new Vector2(size, size), Time.deltaTime * 20f);
+
+		UpdateStyle();
+	}
+
+	private void UpdateStyle()
+	{
+		bool visible = _style != null && _style.Rank >= 0;
+		_styleRoot.SetActive(visible);
+		if (!visible) return;
+
+		_styleFill.anchorMax = new Vector2(_style.RankProgress, 1f);
+
+		// the letter pops when the rank changes
+		_rankPunch = Mathf.MoveTowards(_rankPunch, 0f, Time.unscaledDeltaTime * 4f);
+		_styleLetter.rectTransform.localScale = Vector3.one * (1f + 0.5f * _rankPunch * _rankPunch);
+
+		float calloutLeft = _calloutEndTime - Time.unscaledTime;
+		_styleCallout.gameObject.SetActive(calloutLeft > 0f);
+		Color calloutColor = _styleCallout.color;
+		calloutColor.a = Mathf.Clamp01(calloutLeft / 0.3f);
+		_styleCallout.color = calloutColor;
+	}
+
+	private void OnRankChanged(int rank)
+	{
+		if (rank < 0) return;
+
+		_styleLetter.text = _style.RankLetter;
+		_styleName.text = _style.RankName.ToUpperInvariant();
+
+		Color color = RankColor(rank);
+		_styleLetter.color = color;
+		_styleName.color = color;
+		_styleFillImage.color = color;
+		_rankPunch = 1f;
+	}
+
+	private Color RankColor(int rank)
+	{
+		// S and above share the top colour; D to A blend from low to high
+		const int topRank = 4;
+		if (rank >= topRank) return StyleTopColor;
+		return Color.Lerp(StyleLowColor, StyleHighColor, rank / (float)(topRank - 1));
+	}
+
+	private void OnStyleCallout(string text)
+	{
+		_styleCallout.text = text;
+		_calloutEndTime = Time.unscaledTime + CalloutTime;
 	}
 
 	public void ShowDeath()
@@ -187,12 +266,65 @@ public class PlayerHUD : MonoBehaviour
 		weaponRect.sizeDelta = new Vector2(400f, 30f);
 		_weaponText.color = new Color(1f, 1f, 1f, 0.7f);
 
+		BuildStyleMeter(root, font);
+
 		// death message
 		_deathText = CreateText("DeathText", root, font, 96, TextAnchor.MiddleCenter);
 		_deathText.text = "YOU DIED";
 		_deathText.color = new Color(0.8f, 0.05f, 0.05f);
 		Stretch(_deathText.rectTransform);
 		_deathText.gameObject.SetActive(false);
+	}
+
+	// style rank, right edge of the screen: big letter, rank name, progress bar, callout
+	private void BuildStyleMeter(RectTransform root, Font font)
+	{
+		var styleGO = new GameObject("StyleMeter", typeof(RectTransform));
+		styleGO.transform.SetParent(root, false);
+		RectTransform styleRect = styleGO.GetComponent<RectTransform>();
+		styleRect.anchorMin = styleRect.anchorMax = new Vector2(1f, 0.5f);
+		styleRect.pivot = new Vector2(1f, 0.5f);
+		styleRect.anchoredPosition = new Vector2(-40f, 80f);
+		styleRect.sizeDelta = new Vector2(260f, 200f);
+		_styleRoot = styleGO;
+
+		_styleLetter = CreateText("Rank", styleRect, font, 96, TextAnchor.LowerRight);
+		PlaceInStyle(_styleLetter.rectTransform, 0f, 110f);
+		// scale from the right edge so the pop doesn't shift the letter sideways
+		_styleLetter.rectTransform.pivot = new Vector2(1f, 0.5f);
+		_styleLetter.rectTransform.anchoredPosition = new Vector2(0f, -55f);
+		_styleLetter.fontStyle = FontStyle.Bold;
+		_styleLetter.verticalOverflow = VerticalWrapMode.Overflow;
+
+		_styleName = CreateText("RankName", styleRect, font, 22, TextAnchor.UpperRight);
+		PlaceInStyle(_styleName.rectTransform, -110f, 30f);
+
+		Image barBack = CreateImage("Bar", styleRect, new Color(0f, 0f, 0f, 0.5f));
+		RectTransform barRect = barBack.rectTransform;
+		barRect.anchorMin = barRect.anchorMax = new Vector2(1f, 1f);
+		barRect.pivot = new Vector2(1f, 1f);
+		barRect.anchoredPosition = new Vector2(0f, -144f);
+		barRect.sizeDelta = new Vector2(180f, 6f);
+		_styleFillImage = CreateImage("Fill", barBack.rectTransform, StyleLowColor);
+		_styleFill = _styleFillImage.rectTransform;
+		Stretch(_styleFill);
+
+		_styleCallout = CreateText("Callout", styleRect, font, 24, TextAnchor.UpperRight);
+		PlaceInStyle(_styleCallout.rectTransform, -158f, 32f);
+		_styleCallout.fontStyle = FontStyle.Italic;
+		_styleCallout.gameObject.SetActive(false);
+
+		styleGO.SetActive(false);
+	}
+
+	// a full-width row of the style block, its top edge y pixels below the block's top
+	private static void PlaceInStyle(RectTransform rect, float y, float height)
+	{
+		rect.anchorMin = new Vector2(0f, 1f);
+		rect.anchorMax = new Vector2(1f, 1f);
+		rect.pivot = new Vector2(1f, 1f);
+		rect.anchoredPosition = new Vector2(0f, y);
+		rect.sizeDelta = new Vector2(0f, height);
 	}
 
 	private static Image CreateImage(string name, RectTransform parent, Color color)

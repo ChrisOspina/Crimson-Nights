@@ -32,7 +32,7 @@ MonoBehaviour:
   TracerDuration: 0.05
   KickDistance: 0.14
   KickAngle: 18
-  FireClip: {fileID: 0}
-  ReloadClip: {fileID: 0}
+  FireClip: {fileID: 8300000, guid: 97c574c64560d9a4e9ed58ca17fcd3a8, type: 3}
+  ReloadClip: {fileID: 8300000, guid: 1659bea296aa2e340afb98c16cc3f45a, type: 3}
   EmptyClip: {fileID: 0}
-  ImpactClip: {fileID: 8300000, guid: d2d23563ebc8dbd4ea26c092c520780b, type: 3}
+  ImpactClip: {fileID: 8300000, guid: b57eb1b19af530344baae51a4a5e3663, type: 3}
