@@ -45,6 +45,14 @@ public class FirearmData : ScriptableObject
 	public float KickDistance = 0.08f;
 	public float KickAngle = 8f;
 
+	[Header("Rounds (optional)")]
+	[Tooltip("Spent round (with a Rigidbody and Casing) thrown from the Firearm's EjectPort after each shot")]
+	public GameObject CasingPrefab;
+	[Tooltip("HUD icon for one round in the magazine. Without it the HUD shows the magazine as a number")]
+	public Sprite RoundIcon;
+	[Tooltip("Sideways and upward speed of ejected casings, in m/s")]
+	public Vector2 EjectSpeed = new Vector2(2f, 1.5f);
+
 	[Header("Audio (optional)")]
 	public AudioClip FireClip;
 	public AudioClip ReloadClip;

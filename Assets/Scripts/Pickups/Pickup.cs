@@ -12,8 +12,10 @@ public class Pickup : MonoBehaviour
 	public int Amount = 25;
 	[Tooltip("Seconds until it reappears after being collected. 0 = collected for good")]
 	public float RespawnTime = 20f;
-	[Tooltip("Visual child that bobs, spins and gets tinted")]
+	[Tooltip("Visual child that bobs and spins (with its own children), and is hidden while respawning")]
 	public Renderer Visual;
+	[Tooltip("Tint the Visual with Color. Off for textured models")]
+	public bool TintVisual = true;
 	public Color Color = new Color(0.9f, 0.1f, 0.15f);
 	public AudioClip PickupClip;
 
@@ -38,6 +40,7 @@ public class Pickup : MonoBehaviour
 		if (Visual != null)
 		{
 			_visualRestPos = Visual.transform.localPosition;
+			if (!TintVisual) return;
 			var block = new MaterialPropertyBlock();
 			block.SetColor(BaseColorId, Color);
 			Visual.SetPropertyBlock(block);
@@ -106,6 +109,6 @@ public class Pickup : MonoBehaviour
 	{
 		if (available) _respawnAt = -1f;
 		_collider.enabled = available;
-		if (Visual != null) Visual.enabled = available;
+		if (Visual != null) Visual.gameObject.SetActive(available);
 	}
 }

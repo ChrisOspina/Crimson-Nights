@@ -27,9 +27,19 @@ public static class PrototypeArenaBuilder
 	private const string ShotgunModelPath = "Assets/Low Poly Weapons VOL.1/Prefabs/Bennelli_M4.prefab";
 	// the pack's guns point down -Z, so they're turned to face the camera's +Z
 	private const float GunModelYaw = 180f;
+	// round models from the DuNguyn Bullets Pack: a short blunt pistol round and a wide shotgun shell.
+	// They make the ejected casings, the HUD magazine icons and the ammo pickup; all optional
+	private const string RevolverRoundModelPath = "Assets/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_06.prefab";
+	private const string ShotgunShellModelPath = "Assets/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_09.prefab";
+	private const string RevolverCasingPrefabPath = "Assets/Prefabs/Weapons/Casing_Revolver.prefab";
+	private const string ShotgunCasingPrefabPath = "Assets/Prefabs/Weapons/Casing_Shotgun.prefab";
+	private const string RevolverRoundIconPath = "Assets/Textures/UI/RoundIcon_Revolver.png";
+	private const string ShotgunRoundIconPath = "Assets/Textures/UI/RoundIcon_Shotgun.png";
+	private const string EjectPortName = "EjectPort";
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	private const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";
+	private const string AmmoPickupClipName = "freesound_community-revolver-cocking-104722.mp3";
 
 	private const string ArenaRootName = "PrototypeArena";
 	private const string FollowCameraName = "PlayerFollowCamera";
@@ -95,9 +105,15 @@ public static class PrototypeArenaBuilder
 		if (enemyData.AttackHitClip == null) enemyData.AttackHitClip = LoadClip("Monster Bite.wav");
 		EditorUtility.SetDirty(enemyData);
 
+		RoundModel revolverRound = LoadRoundModel(RevolverRoundModelPath);
+		RoundModel shotgunShell = LoadRoundModel(ShotgunShellModelPath);
+		SetupRounds(revolverData, revolverRound, RevolverCasingPrefabPath, RevolverRoundIconPath, 0.04f);
+		SetupRounds(shotgunData, shotgunShell, ShotgunCasingPrefabPath, ShotgunRoundIconPath, 0.075f);
+
 		GameObject enemyPrefab = GetOrCreateEnemyPrefab(enemyData, enemyMat);
-		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, new Color(0.9f, 0.1f, 0.15f), fxMat);
-		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat);
+		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, new Color(0.9f, 0.1f, 0.15f), fxMat, PickupClipName);
+		Pickup ammoPickup = GetOrCreatePickupPrefab(AmmoPickupPrefabPath, Pickup.Kind.Ammo, 12, new Color(1f, 0.75f, 0.25f), fxMat, AmmoPickupClipName);
+		SetupAmmoPickupModel(shotgunShell, revolverRound);
 		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
 		StyleData styleData = GetOrCreateAsset<StyleData>(StyleDataPath, out _);
 
@@ -214,16 +230,19 @@ public static class PrototypeArenaBuilder
 		return prefab;
 	}
 
-	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, Color color, Material material)
+	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, Color color, Material material, string clipName)
 	{
 		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
 		if (existing != null)
 		{
+			// the builder owns pickup sounds: an existing prefab is switched to clipName. Saved straight away,
+			// since SetupAmmoPickupModel reloads the prefab from disk and would otherwise drop the change
 			Pickup existingPickup = existing.GetComponent<Pickup>();
-			if (existingPickup.PickupClip == null)
+			AudioClip clip = LoadClip(clipName);
+			if (clip != null && existingPickup.PickupClip != clip)
 			{
-				existingPickup.PickupClip = LoadClip(PickupClipName);
-				EditorUtility.SetDirty(existingPickup);
+				existingPickup.PickupClip = clip;
+				PrefabUtility.SavePrefabAsset(existing);
 			}
 			return existingPickup;
 		}
@@ -260,7 +279,7 @@ public static class PrototypeArenaBuilder
 		pickup.Amount = amount;
 		pickup.Color = color;
 		pickup.Visual = meshRenderer;
-		pickup.PickupClip = LoadClip(PickupClipName);
+		pickup.PickupClip = LoadClip(clipName);
 
 		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
 		Object.DestroyImmediate(root);
@@ -302,6 +321,7 @@ public static class PrototypeArenaBuilder
 			// revolver viewmodel: pivot -> M1911 model (or placeholder cubes) + muzzle point
 			Transform revolverPivot = GetOrCreateChild(cameraRoot, "RevolverViewmodel", new Vector3(0.25f, -0.22f, 0.45f));
 			Transform muzzle = GetOrCreateChild(revolverPivot, "Muzzle", new Vector3(0f, 0.02f, 0.17f));
+			Transform ejectPort = GetOrCreateChild(revolverPivot, EjectPortName, new Vector3(0.03f, 0.04f, 0.02f));
 			if (!SetupGunModel(revolverPivot, muzzle, RevolverModelPath, 0.26f) && revolverPivot.Find("Body") == null)
 			{
 				CreateViewmodelCube(revolverPivot, "Body", Vector3.zero, new Vector3(0.07f, 0.12f, 0.3f), metalMat);
@@ -311,6 +331,7 @@ public static class PrototypeArenaBuilder
 			// shotgun viewmodel: Benelli M4 model (or placeholder cubes), hidden until switched to
 			Transform shotgunPivot = GetOrCreateChild(cameraRoot, "ShotgunViewmodel", new Vector3(0.25f, -0.24f, 0.45f));
 			Transform shotgunMuzzle = GetOrCreateChild(shotgunPivot, "Muzzle", new Vector3(0f, 0.02f, 0.36f));
+			Transform shotgunEjectPort = GetOrCreateChild(shotgunPivot, EjectPortName, new Vector3(0.035f, 0.03f, -0.04f));
 			if (!SetupGunModel(shotgunPivot, shotgunMuzzle, ShotgunModelPath, 0.62f) && shotgunPivot.Find("BarrelL") == null)
 			{
 				CreateViewmodelCube(shotgunPivot, "BarrelL", new Vector3(-0.025f, 0.02f, 0.1f), new Vector3(0.045f, 0.045f, 0.5f), metalMat);
@@ -334,10 +355,12 @@ public static class PrototypeArenaBuilder
 			Firearm revolver = GetOrAddFirearm(root, revolverData);
 			revolver.Viewmodel = revolverPivot;
 			revolver.Muzzle = muzzle;
+			revolver.EjectPort = ejectPort;
 
 			Firearm shotgun = GetOrAddFirearm(root, shotgunData);
 			shotgun.Viewmodel = shotgunPivot;
 			shotgun.Muzzle = shotgunMuzzle;
+			shotgun.EjectPort = shotgunEjectPort;
 
 			GetOrAdd<WeaponSwitcher>(root).Firearms = new[] { revolver, shotgun };
 
@@ -361,7 +384,7 @@ public static class PrototypeArenaBuilder
 		}
 	}
 
-	// Replaces everything under a gun pivot (except its muzzle) with a copy of the model, turned to face +Z,
+	// Replaces everything under a gun pivot (except its muzzle and eject port) with a copy of the model, turned to face +Z,
 	// scaled so it's `length` metres long and centred on the pivot. The muzzle goes on the model's front face.
 	// Returns false if the model asset is missing.
 	private static bool SetupGunModel(Transform pivot, Transform muzzle, string modelPath, float length)
@@ -376,7 +399,7 @@ public static class PrototypeArenaBuilder
 		for (int i = pivot.childCount - 1; i >= 0; i--)
 		{
 			Transform child = pivot.GetChild(i);
-			if (child != muzzle) Object.DestroyImmediate(child.gameObject);
+			if (child != muzzle && child.name != EjectPortName) Object.DestroyImmediate(child.gameObject);
 		}
 
 		// a plain copy rather than a prefab instance, so the builder owns it
@@ -440,6 +463,255 @@ public static class PrototypeArenaBuilder
 		var meshRenderer = cube.GetComponent<MeshRenderer>();
 		meshRenderer.sharedMaterial = material;
 		meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+	}
+
+	// ---------------------------------------------------------------- rounds
+
+	// A round's mesh, measured. Rounds are lathed shapes, so an axis and a radius describe them
+	private class RoundModel
+	{
+		public Mesh Mesh;
+		public Material Material;
+		// mesh space: unit vector from the base towards the tip, and the centre of the base
+		public Vector3 TipDirection;
+		public Vector3 BaseCenter;
+		public float Length;
+		public float Radius;
+
+		public Quaternion Upright => Quaternion.FromToRotation(TipDirection, Vector3.up);
+
+		public float Along(Vector3 vertex) => Vector3.Dot(vertex - BaseCenter, TipDirection);
+
+		public float RadiusAt(Vector3 vertex)
+		{
+			Vector3 offset = vertex - BaseCenter;
+			return (offset - TipDirection * Vector3.Dot(offset, TipDirection)).magnitude;
+		}
+	}
+
+	private static RoundModel LoadRoundModel(string path)
+	{
+		GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+		MeshFilter meshFilter = source != null ? source.GetComponentInChildren<MeshFilter>() : null;
+		MeshRenderer meshRenderer = source != null ? source.GetComponentInChildren<MeshRenderer>() : null;
+		if (meshFilter == null || meshFilter.sharedMesh == null || meshRenderer == null)
+		{
+			Debug.LogWarning("[PrototypeArenaBuilder] Round model not found at " + path + ", skipping its casings, HUD icons and pickup model.");
+			return null;
+		}
+
+		Mesh mesh = meshFilter.sharedMesh;
+		Bounds bounds = mesh.bounds;
+		int axis = bounds.size.x >= bounds.size.y && bounds.size.x >= bounds.size.z ? 0 : bounds.size.y >= bounds.size.z ? 1 : 2;
+		Vector3 axisDirection = Vector3.zero;
+		axisDirection[axis] = 1f;
+		float length = bounds.size[axis];
+
+		var model = new RoundModel
+		{
+			Mesh = mesh,
+			Material = meshRenderer.sharedMaterial,
+			TipDirection = axisDirection,
+			BaseCenter = bounds.center - axisDirection * (length * 0.5f),
+			Length = length,
+		};
+
+		// the tip is whichever end is narrower (a shell's rim and a bullet's base are the widest parts)
+		float lowEndRadius = 0f, highEndRadius = 0f;
+		foreach (Vector3 vertex in mesh.vertices)
+		{
+			float along = model.Along(vertex);
+			float radius = model.RadiusAt(vertex);
+			model.Radius = Mathf.Max(model.Radius, radius);
+			if (along < length * 0.1f) lowEndRadius = Mathf.Max(lowEndRadius, radius);
+			if (along > length * 0.9f) highEndRadius = Mathf.Max(highEndRadius, radius);
+		}
+		if (highEndRadius > lowEndRadius)
+		{
+			model.TipDirection = -axisDirection;
+			model.BaseCenter = bounds.center + axisDirection * (length * 0.5f);
+		}
+		return model;
+	}
+
+	private static void SetupRounds(FirearmData data, RoundModel model, string casingPath, string iconPath, float casingLength)
+	{
+		if (model == null) return;
+		if (data.CasingPrefab == null) data.CasingPrefab = GetOrCreateCasingPrefab(casingPath, model, casingLength);
+		if (data.RoundIcon == null) data.RoundIcon = GetOrBakeRoundIcon(iconPath, model);
+		EditorUtility.SetDirty(data);
+	}
+
+	// A copy of the round's mesh, `length` metres long, standing with its base on basePosition (tilted by `tilt`)
+	private static GameObject CreateRoundObject(string name, Transform parent, RoundModel model, float length, Vector3 basePosition, Quaternion tilt)
+	{
+		var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+		go.layer = parent.gameObject.layer;
+		go.transform.SetParent(parent, false);
+
+		float scale = length / model.Length;
+		Quaternion rotation = tilt * model.Upright;
+		go.transform.localRotation = rotation;
+		go.transform.localScale = Vector3.one * scale;
+		go.transform.localPosition = basePosition - rotation * (model.BaseCenter * scale);
+
+		go.GetComponent<MeshFilter>().sharedMesh = model.Mesh;
+		go.GetComponent<MeshRenderer>().sharedMaterial = model.Material;
+		return go;
+	}
+
+	// Spent round for Firearm to throw: lies along Z, centred on its root so it tumbles about its middle
+	private static GameObject GetOrCreateCasingPrefab(string path, RoundModel model, float length)
+	{
+		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+		if (existing != null) return existing;
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+
+		// Player layer: firearms and melee ignore it, and Firearm turns off its collision with the player
+		var root = new GameObject(System.IO.Path.GetFileNameWithoutExtension(path));
+		root.layer = PlayerLayer;
+		CreateRoundObject("Mesh", root.transform, model, length, new Vector3(0f, 0f, -length * 0.5f), Quaternion.Euler(90f, 0f, 0f));
+
+		var capsule = root.AddComponent<CapsuleCollider>();
+		capsule.direction = 2;
+		capsule.height = length;
+		capsule.radius = model.Radius * length / model.Length;
+
+		var body = root.AddComponent<Rigidbody>();
+		body.mass = 0.02f;
+		body.interpolation = RigidbodyInterpolation.Interpolate;
+		body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+
+		root.AddComponent<Casing>();
+
+		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+		Object.DestroyImmediate(root);
+		return prefab;
+	}
+
+	private static Sprite GetOrBakeRoundIcon(string path, RoundModel model)
+	{
+		Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+		if (existing != null) return existing;
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+		Texture2D texture = BakeRoundSilhouette(model, 128);
+		System.IO.File.WriteAllBytes(path, texture.EncodeToPNG());
+		Object.DestroyImmediate(texture);
+
+		AssetDatabase.ImportAsset(path);
+		var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+		importer.textureType = TextureImporterType.Sprite;
+		importer.spriteImportMode = SpriteImportMode.Single;
+		importer.alphaIsTransparency = true;
+		importer.mipmapEnabled = false;
+		importer.SaveAndReimport();
+		return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+	}
+
+	// The round seen side-on, tip up: a white outline with soft round shading, for the HUD to tint.
+	// Each pixel row's half-width is the widest point any mesh edge reaches at that height, so inner
+	// details (primer, case mouth) don't dent the outline.
+	private static Texture2D BakeRoundSilhouette(RoundModel model, int height)
+	{
+		const int padding = 2;
+		int rows = height - padding * 2;
+		float pixelsPerUnit = rows / model.Length;
+		int width = Mathf.CeilToInt(model.Radius * 2f * pixelsPerUnit) + padding * 2;
+
+		Vector3[] vertices = model.Mesh.vertices;
+		int[] triangles = model.Mesh.triangles;
+		var rowRadius = new float[rows];
+		for (int i = 0; i < triangles.Length; i += 3)
+		{
+			for (int edge = 0; edge < 3; edge++)
+			{
+				Vector3 a = vertices[triangles[i + edge]];
+				Vector3 b = vertices[triangles[i + (edge + 1) % 3]];
+				float alongA = model.Along(a) * pixelsPerUnit;
+				float alongB = model.Along(b) * pixelsPerUnit;
+				if (Mathf.Approximately(alongA, alongB)) continue;
+
+				int first = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(alongA, alongB)));
+				int last = Mathf.Min(rows - 1, Mathf.CeilToInt(Mathf.Max(alongA, alongB)));
+				for (int row = first; row <= last; row++)
+				{
+					float t = (row + 0.5f - alongA) / (alongB - alongA);
+					if (t < 0f || t > 1f) continue;
+					rowRadius[row] = Mathf.Max(rowRadius[row], model.RadiusAt(Vector3.Lerp(a, b, t)) * pixelsPerUnit);
+				}
+			}
+		}
+
+		var pixels = new Color32[width * height];
+		float centre = width * 0.5f;
+		for (int row = 0; row < rows; row++)
+		{
+			float radius = rowRadius[row];
+			if (radius <= 0f) continue;
+			for (int x = 0; x < width; x++)
+			{
+				float offset = x + 0.5f - centre;
+				float coverage = Mathf.Clamp01(radius - Mathf.Abs(offset) + 0.5f);
+				if (coverage <= 0f) continue;
+
+				// a cylinder lit slightly from the left
+				float across = Mathf.Clamp(offset / radius, -1f, 1f);
+				float light = Mathf.Clamp01(0.62f + 0.38f * Mathf.Sqrt(1f - across * across) - 0.15f * across);
+				byte value = (byte)(light * 255f);
+				pixels[(row + padding) * width + x] = new Color32(value, value, value, (byte)(coverage * 255f));
+			}
+		}
+
+		var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+		texture.SetPixels32(pixels);
+		texture.Apply();
+		return texture;
+	}
+
+	// Swaps the ammo pickup's glowing sphere for a shotgun shell flanked by two pistol rounds, with a faint
+	// gold light. The shell is the pickup's Visual, so the rounds and light bob and spin with it
+	private static void SetupAmmoPickupModel(RoundModel shell, RoundModel round)
+	{
+		if (shell == null || round == null) return;
+
+		GameObject root = PrefabUtility.LoadPrefabContents(AmmoPickupPrefabPath);
+		try
+		{
+			Transform oldVisual = root.transform.Find("Visual");
+			if (oldVisual != null) Object.DestroyImmediate(oldVisual.gameObject);
+
+			const float baseHeight = 0.42f;
+			GameObject visual = CreateRoundObject("Visual", root.transform, shell, 0.24f, new Vector3(0f, baseHeight, 0f), Quaternion.identity);
+			GameObject left = CreateRoundObject("RoundL", root.transform, round, 0.15f, new Vector3(-0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, 12f));
+			GameObject right = CreateRoundObject("RoundR", root.transform, round, 0.15f, new Vector3(0.085f, baseHeight, 0f), Quaternion.Euler(0f, 0f, -12f));
+
+			var glow = new GameObject("Glow");
+			glow.layer = IgnoreRaycastLayer;
+			glow.transform.SetParent(root.transform, false);
+			glow.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+			Light light = glow.AddComponent<Light>();
+			light.type = LightType.Point;
+			light.color = new Color(1f, 0.75f, 0.25f);
+			light.range = 1.5f;
+			light.intensity = 1.2f;
+			light.shadows = LightShadows.None;
+
+			left.transform.SetParent(visual.transform, true);
+			right.transform.SetParent(visual.transform, true);
+			glow.transform.SetParent(visual.transform, true);
+
+			Pickup pickup = root.GetComponent<Pickup>();
+			pickup.Visual = visual.GetComponent<MeshRenderer>();
+			pickup.TintVisual = false;
+
+			PrefabUtility.SaveAsPrefabAsset(root, AmmoPickupPrefabPath);
+		}
+		finally
+		{
+			PrefabUtility.UnloadPrefabContents(root);
+		}
 	}
 
 	// ---------------------------------------------------------------- scene

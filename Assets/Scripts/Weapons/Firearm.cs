@@ -15,6 +15,8 @@ public class Firearm : MonoBehaviour
 	public Transform Viewmodel;
 	[Tooltip("Where tracers and the muzzle flash start")]
 	public Transform Muzzle;
+	[Tooltip("Where spent casings are thrown from, to its right (optional)")]
+	public Transform EjectPort;
 
 	public int Ammo { get; private set; }
 	public int MagazineSize => Data.MagazineSize;
@@ -31,6 +33,7 @@ public class Firearm : MonoBehaviour
 
 	private StarterAssetsInputs _input;
 	private PlayerDodge _dodge;
+	private CharacterController _controller;
 	private Transform _camera;
 	private AudioSource _audioSource;
 	private float _nextFireTime;
@@ -54,6 +57,7 @@ public class Firearm : MonoBehaviour
 	{
 		_input = GetComponent<StarterAssetsInputs>();
 		_dodge = GetComponent<PlayerDodge>();
+		_controller = GetComponent<CharacterController>();
 		_audioSource = gameObject.AddComponent<AudioSource>();
 		_audioSource.playOnAwake = false;
 		_audioSource.spatialBlend = 0f;
@@ -188,6 +192,7 @@ public class Firearm : MonoBehaviour
 		if (anyHit && Data.ImpactClip != null) AudioSource.PlayClipAtPoint(Data.ImpactClip, firstHitPoint);
 
 		StartCoroutine(FlashMuzzle());
+		EjectCasing();
 		PlayClip(Data.FireClip);
 		_kick = 1f;
 
@@ -268,6 +273,25 @@ public class Firearm : MonoBehaviour
 		_muzzleFlash.SetActive(true);
 		yield return new WaitForSeconds(0.04f);
 		_muzzleFlash.SetActive(false);
+	}
+
+	// throws a spent round out to the right, carried along with the player so it doesn't fall behind a strafe
+	private void EjectCasing()
+	{
+		if (Data.CasingPrefab == null || EjectPort == null) return;
+
+		GameObject casing = Instantiate(Data.CasingPrefab, EjectPort.position, EjectPort.rotation);
+		Collider casingCollider = casing.GetComponentInChildren<Collider>();
+		if (casingCollider != null && _controller != null) Physics.IgnoreCollision(casingCollider, _controller);
+
+		Rigidbody body = casing.GetComponent<Rigidbody>();
+		if (body == null) return;
+		Vector3 velocity = EjectPort.right * (Data.EjectSpeed.x * UnityEngine.Random.Range(0.8f, 1.2f))
+			+ EjectPort.up * (Data.EjectSpeed.y * UnityEngine.Random.Range(0.8f, 1.2f))
+			- EjectPort.forward * 0.3f;
+		if (_controller != null) velocity += _controller.velocity;
+		body.linearVelocity = velocity;
+		body.angularVelocity = UnityEngine.Random.insideUnitSphere * 25f;
 	}
 
 	private void SpawnTracer(Vector3 from, Vector3 to)

@@ -32,6 +32,9 @@ MonoBehaviour:
   TracerDuration: 0.05
   KickDistance: 0.08
   KickAngle: 8
+  CasingPrefab: {fileID: 796905792676531492, guid: 8324c0dd94cce414bac8d306804ab1ea, type: 3}
+  RoundIcon: {fileID: 21300000, guid: 32f4efed0be9504419e1dc224cbd2cd1, type: 3}
+  EjectSpeed: {x: 2, y: 1.5}
   FireClip: {fileID: 8300000, guid: f1aebac47682aa94cb77a6436438ff6e, type: 3}
   ReloadClip: {fileID: 8300000, guid: 7a805dec6baf2a948a17719f18b0d2f8, type: 3}
   EmptyClip: {fileID: 0}

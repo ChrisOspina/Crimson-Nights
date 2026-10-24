@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,9 @@ public class PlayerHUD : MonoBehaviour
 	public Color EmptyAmmoColor = new Color(0.9f, 0.25f, 0.2f, 1f);
 	public Color CounterColor = new Color(0.55f, 0.85f, 1f, 1f);
 	public Color PerfectDodgeFlashColor = new Color(0.75f, 0.9f, 1f, 1f);
+	[Tooltip("Magazine icons for rounds already fired")]
+	public Color SpentRoundColor = new Color(1f, 1f, 1f, 0.18f);
+	public float RoundIconHeight = 44f;
 
 	[Header("Style Meter")]
 	[Tooltip("Rank colour at D, blending towards StyleHighColor at A")]
@@ -31,6 +35,8 @@ public class PlayerHUD : MonoBehaviour
 	private RectTransform _healthFill;
 	private Text _ammoText;
 	private Text _weaponText;
+	private RectTransform _roundIcons;
+	private readonly List<Image> _roundImages = new List<Image>();
 	private Image _crosshair;
 	private Image _damageFlash;
 	private Color _flashColor;
@@ -197,10 +203,49 @@ public class PlayerHUD : MonoBehaviour
 			_weaponText.text = "";
 			return;
 		}
-		_weaponText.text = firearm.Data.DisplayName.ToUpperInvariant();
-		_ammoText.text = firearm.IsReloading ? "RELOADING" : $"{firearm.Ammo} / {firearm.ReserveAmmo}";
 		// red when there's nothing left to load
 		_ammoText.color = firearm.ReserveAmmo == 0 && !firearm.IsReloading ? EmptyAmmoColor : Color.white;
+
+		string weaponName = firearm.Data.DisplayName.ToUpperInvariant();
+		Sprite icon = firearm.Data.RoundIcon;
+		_roundIcons.gameObject.SetActive(icon != null);
+		if (icon == null)
+		{
+			_weaponText.text = weaponName;
+			_ammoText.text = firearm.IsReloading ? "RELOADING" : $"{firearm.Ammo} / {firearm.ReserveAmmo}";
+			return;
+		}
+
+		// magazine as a row of rounds, then the reserve count
+		_weaponText.text = firearm.IsReloading ? "RELOADING" : weaponName;
+		_ammoText.text = $"/ {firearm.ReserveAmmo}";
+		_roundIcons.anchoredPosition = new Vector2(-40f - _ammoText.preferredWidth - 14f, 40f);
+		RefreshRoundIcons(icon, firearm.MagazineSize, firearm.IsReloading ? 0 : firearm.Ammo);
+	}
+
+	// spent rounds on the left, loaded ones on the right, laid out leftwards from the reserve count
+	private void RefreshRoundIcons(Sprite icon, int magazineSize, int loaded)
+	{
+		while (_roundImages.Count < magazineSize)
+		{
+			Image image = CreateImage("Round", _roundIcons, Color.white);
+			image.rectTransform.anchorMin = image.rectTransform.anchorMax = new Vector2(1f, 0f);
+			image.rectTransform.pivot = new Vector2(1f, 0f);
+			_roundImages.Add(image);
+		}
+
+		float width = RoundIconHeight * icon.rect.width / icon.rect.height;
+		for (int i = 0; i < _roundImages.Count; i++)
+		{
+			Image image = _roundImages[i];
+			image.gameObject.SetActive(i < magazineSize);
+			if (i >= magazineSize) continue;
+
+			image.sprite = icon;
+			image.rectTransform.sizeDelta = new Vector2(width, RoundIconHeight);
+			image.rectTransform.anchoredPosition = new Vector2(-(magazineSize - 1 - i) * (width + 5f), 0f);
+			image.color = i >= magazineSize - loaded ? Color.white : SpentRoundColor;
+		}
 	}
 
 	private void BuildUI()
@@ -256,6 +301,14 @@ public class PlayerHUD : MonoBehaviour
 		ammoRect.pivot = new Vector2(1f, 0f);
 		ammoRect.anchoredPosition = new Vector2(-40f, 32f);
 		ammoRect.sizeDelta = new Vector2(400f, 60f);
+
+		// magazine icons, left of the reserve count (placed by RefreshAmmo)
+		var iconsGO = new GameObject("RoundIcons", typeof(RectTransform));
+		iconsGO.transform.SetParent(root, false);
+		_roundIcons = iconsGO.GetComponent<RectTransform>();
+		_roundIcons.anchorMin = _roundIcons.anchorMax = new Vector2(1f, 0f);
+		_roundIcons.pivot = new Vector2(1f, 0f);
+		_roundIcons.sizeDelta = Vector2.zero;
 
 		// equipped weapon name, just above the ammo count
 		_weaponText = CreateText("Weapon", root, font, 22, TextAnchor.LowerRight);
