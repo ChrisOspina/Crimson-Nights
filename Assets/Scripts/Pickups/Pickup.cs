@@ -12,9 +12,9 @@ public class Pickup : MonoBehaviour
 	public int Amount = 25;
 	[Tooltip("Seconds until it reappears after being collected. 0 = collected for good")]
 	public float RespawnTime = 20f;
-	[Tooltip("Visual child that bobs and spins (with its own children), and is hidden while respawning")]
-	public Renderer Visual;
-	[Tooltip("Tint the Visual with Color. Off for textured models")]
+	[Tooltip("Visual child that bobs and spins (with everything under it), and is hidden while respawning")]
+	public Transform Visual;
+	[Tooltip("Tint the Visual's renderers with Color. Off for textured models")]
 	public bool TintVisual = true;
 	public Color Color = new Color(0.9f, 0.1f, 0.15f);
 	public AudioClip PickupClip;
@@ -39,11 +39,13 @@ public class Pickup : MonoBehaviour
 
 		if (Visual != null)
 		{
-			_visualRestPos = Visual.transform.localPosition;
-			if (!TintVisual) return;
-			var block = new MaterialPropertyBlock();
-			block.SetColor(BaseColorId, Color);
-			Visual.SetPropertyBlock(block);
+			_visualRestPos = Visual.localPosition;
+			if (TintVisual)
+			{
+				var block = new MaterialPropertyBlock();
+				block.SetColor(BaseColorId, Color);
+				foreach (Renderer visualRenderer in Visual.GetComponentsInChildren<Renderer>()) visualRenderer.SetPropertyBlock(block);
+			}
 		}
 	}
 
@@ -57,9 +59,8 @@ public class Pickup : MonoBehaviour
 
 		if (Visual != null)
 		{
-			Transform visual = Visual.transform;
-			visual.localPosition = _visualRestPos + Vector3.up * (Mathf.Sin(Time.time * BobSpeed + _phase) * BobHeight);
-			visual.Rotate(0f, SpinSpeed * Time.deltaTime, 0f, Space.World);
+			Visual.localPosition = _visualRestPos + Vector3.up * (Mathf.Sin(Time.time * BobSpeed + _phase) * BobHeight);
+			Visual.Rotate(0f, SpinSpeed * Time.deltaTime, 0f, Space.World);
 		}
 	}
 

@@ -5,14 +5,14 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
 
-// Builds the Phase 1 combat prototype into SampleScene: layers, data assets, the cube enemy prefab,
+// Builds the Phase 1 combat prototype into Level1: layers, data assets, the cube enemy prefab,
 // health/ammo pickup prefabs, player combat components, the arena geometry, NavMesh, enemy spawner,
 // placed pickups and a Cinemachine 3 camera rig.
 // Safe to re-run: the arena root is rebuilt, existing assets are reused rather than overwritten.
 public static class PrototypeArenaBuilder
 {
-	private const string ScenePath = "Assets/Scenes/SampleScene.unity";
-	private const string PlayerPrefabPath = "Assets/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
+	private const string ScenePath = "Assets/Scenes/Level1.unity";
+	private const string PlayerPrefabPath = "Assets/ThirdParty/Player/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
 	private const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
 	// small common heal (the jar) and big rare heal (the kit)
 	private const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
@@ -25,14 +25,14 @@ public static class PrototypeArenaBuilder
 	private const string DodgeDataPath = "Assets/Data/Player/Dodge.asset";
 	private const string StyleDataPath = "Assets/Data/Player/Style.asset";
 	// gun models from Low Poly Weapons VOL.1; the cube viewmodels are used if these are missing
-	private const string RevolverModelPath = "Assets/Low Poly Weapons VOL.1/Prefabs/M1911.prefab";
-	private const string ShotgunModelPath = "Assets/Low Poly Weapons VOL.1/Prefabs/Bennelli_M4.prefab";
+	private const string RevolverModelPath = "Assets/ThirdParty/Weapons/Low Poly Weapons VOL.1/Prefabs/M1911.prefab";
+	private const string ShotgunModelPath = "Assets/ThirdParty/Weapons/Low Poly Weapons VOL.1/Prefabs/Bennelli_M4.prefab";
 	// the pack's guns point down -Z, so they're turned to face the camera's +Z
 	private const float GunModelYaw = 180f;
 	// round models from the DuNguyn Bullets Pack: a short blunt pistol round and a wide shotgun shell.
 	// They make the ejected casings, the HUD magazine icons and the ammo pickup; all optional
-	private const string RevolverRoundModelPath = "Assets/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_06.prefab";
-	private const string ShotgunShellModelPath = "Assets/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_09.prefab";
+	private const string RevolverRoundModelPath = "Assets/ThirdParty/Weapons/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_06.prefab";
+	private const string ShotgunShellModelPath = "Assets/ThirdParty/Weapons/DuNguyn/Bullets Pack/Prefabs/SM_Bullet_09.prefab";
 	private const string RevolverCasingPrefabPath = "Assets/Prefabs/Weapons/Casing_Revolver.prefab";
 	private const string ShotgunCasingPrefabPath = "Assets/Prefabs/Weapons/Casing_Shotgun.prefab";
 	private const string RevolverRoundIconPath = "Assets/Textures/UI/RoundIcon_Revolver.png";
@@ -40,8 +40,8 @@ public static class PrototypeArenaBuilder
 	private const string EjectPortName = "EjectPort";
 	// health pickup models (Built-in RP packs whose materials were converted to URP/Lit by hand); the red
 	// variants, to match the health bar. Without them the pickups stay glowing spheres
-	private const string HealthJarModelPath = "Assets/First aid jar/Prefabs/Firstaid_2.prefab";
-	private const string HealthKitModelPath = "Assets/GeeKay3D/First-Aid-Set/Assets/Prefabs/FirstAidKit_Red.prefab";
+	private const string HealthJarModelPath = "Assets/ThirdParty/Pickups/First aid jar/Prefabs/Firstaid_2.prefab";
+	private const string HealthKitModelPath = "Assets/ThirdParty/Pickups/GeeKay3D/First-Aid-Set/Assets/Prefabs/FirstAidKit_Red.prefab";
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	private const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";

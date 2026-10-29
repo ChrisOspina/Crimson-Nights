@@ -14,9 +14,13 @@ public class EnemySpawner : MonoBehaviour
 	public float TimeBetweenWaves = 3f;
 
 	[Header("Drops")]
+	[Tooltip("Small, common heal (first aid jar)")]
 	public Pickup HealthDropPrefab;
+	[Tooltip("Big, rare heal (first aid kit)")]
+	public Pickup MajorHealthDropPrefab;
 	public Pickup AmmoDropPrefab;
-	[Range(0f, 1f)] public float HealthDropChance = 0.15f;
+	[Range(0f, 1f)] public float HealthDropChance = 0.2f;
+	[Range(0f, 1f)] public float MajorHealthDropChance = 0.04f;
 	[Range(0f, 1f)] public float AmmoDropChance = 0.35f;
 	[Tooltip("Seconds before an uncollected drop disappears")]
 	public float DropLifetime = 20f;
@@ -71,13 +75,14 @@ public class EnemySpawner : MonoBehaviour
 		Debug.Log($"[EnemySpawner] Wave {CurrentWave}: {size} enemies");
 	}
 
-	// rolls ammo first, then health, so at most one drop per kill
+	// one roll split into ammo, small heal, then big heal bands, so at most one drop per kill
 	private void SpawnDrop(Vector3 position)
 	{
 		float roll = Random.value;
 		Pickup prefab = null;
 		if (roll < AmmoDropChance) prefab = AmmoDropPrefab;
 		else if (roll < AmmoDropChance + HealthDropChance) prefab = HealthDropPrefab;
+		else if (roll < AmmoDropChance + HealthDropChance + MajorHealthDropChance) prefab = MajorHealthDropPrefab;
 		if (prefab == null) return;
 
 		Pickup drop = Instantiate(prefab, position, Quaternion.identity);

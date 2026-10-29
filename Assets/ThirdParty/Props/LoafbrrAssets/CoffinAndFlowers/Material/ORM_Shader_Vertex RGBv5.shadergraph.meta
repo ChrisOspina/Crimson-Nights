@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 1447c5b0fc9c3944da5485031aad3dd8
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 411858
+  packageName: Coffin And Flowers
+  packageVersion: 1.0
+  assetPath: Assets/LoafbrrAssets/CoffinAndFlowers/Material/ORM_Shader_Vertex RGBv5.shadergraph
+  uploadId: 1006458

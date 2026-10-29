@@ -11,7 +11,7 @@
         </mxCell>
 
         <!-- PlayerCapsule prefab container -->
-        <mxCell id="prefab" value="PlayerCapsule.prefab  (tag: Player, layer 8)  — placed in SampleScene by the arena builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=0;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;arcSize=3;" vertex="1" parent="1">
+        <mxCell id="prefab" value="PlayerCapsule.prefab  (tag: Player, layer 8)  — placed in Level1 by the arena builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=0;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;arcSize=3;" vertex="1" parent="1">
           <mxGeometry x="200" y="80" width="960" height="350" as="geometry" />
         </mxCell>
 

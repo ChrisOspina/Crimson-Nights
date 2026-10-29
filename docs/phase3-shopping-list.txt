@@ -1,0 +1,135 @@
+CRIMSON NIGHTS - PHASE 3 (MUSEUM PROTOTYPE) FREE SHOPPING LIST
+================================================================
+Budget: $0. Everything below is free. Before downloading, check that the
+price says FREE and look at the licence.
+
+Scope reminder: Grand Gallery + one entrance corridor + one locked
+"Vampire History" exhibit room. Don't grab whole wings' worth of art.
+
+Legend:  [MUST] needed for the Phase 3 flow   [NICE] polish, skip if short on time
+         (have) already in the project
+
+
+WHERE TO LOOK (all free)
+------------------------
+- Unity Asset Store: assetstore.unity.com, set Pricing filter = "Free Assets".
+  Also tick Render Pipeline = URP where the filter allows it.
+- Unity Package Manager (Window > Package Manager > Unity Registry): free tools.
+- Poly Haven (polyhaven.com): models, textures, HDRIs. CC0, no credit needed.
+- ambientCG (ambientcg.com): PBR textures. CC0.
+- Kenney (kenney.nl) and Quaternius (quaternius.com): low-poly kits. CC0.
+- Sketchfab (sketchfab.com): search, then filter "Downloadable" and check the
+  licence on each model. CC0 = free to use; CC-BY = free but you must credit.
+  Avoid "NonCommercial" (NC) licences if you ever plan to sell the game.
+- Freesound (freesound.org) / Pixabay (pixabay.com/sound-effects): audio.
+- Google Fonts (fonts.google.com): fonts under the OFL licence.
+- Public-domain paintings: Rijksmuseum, The Met Open Access, Wikimedia Commons
+  (look for "Public domain" / "CC0").
+
+
+1. TOOLS (Package Manager, free)
+--------------------------------
+[MUST] ProBuilder - greybox the rooms, staircase and balcony before art.
+[NICE] Polybrush - paint dirt or vertex colour onto floors and walls.
+
+
+2. ARCHITECTURE
+---------------
+[MUST] Modular gothic / Victorian / castle interior kit: walls, floor tiles,
+       arches, columns, ceiling pieces, window frames.
+       Asset Store search: "gothic interior", "medieval castle modular",
+       "victorian interior", "dungeon modular" (Free filter).
+       Also try Quaternius and Kenney castle/dungeon kits.
+[MUST] Staircase + balcony railing (the key is up on the balcony).
+       If no kit has one, build it with ProBuilder.
+[MUST] Wooden door with a frame (2 doors needed: the locked Vampire
+       History door and the gallery entrance that seals during the fight).
+       The door mesh should have its pivot at the hinge, or be easy to re-pivot.
+[NICE] Stained-glass window (or make one: a quad + emissive texture).
+
+
+3. PROPS
+--------
+[MUST] Chandelier (centrepiece of the Grand Gallery)
+[MUST] Candles / candelabras / wall sconces (main light sources)
+[MUST] Display cases or glass vitrines + pedestals/plinths (exhibits)
+[MUST] Picture frames (put the public-domain paintings in them)
+[MUST] Statues or busts (2-3)
+[MUST] Coffin (the broken-open reveal exhibit in the Vampire History room)
+[NICE] Bookshelves, old books, scrolls, journals
+[NICE] Victorian furniture: armchairs, side tables, rugs, curtains
+[NICE] Ropes/stanchions (museum barrier posts) - sells the "museum" feel
+[NICE] Ancient weapons on wall mounts (swords, stakes, crossbow)
+[NICE] Cobwebs, dust decals, broken glass
+       Sources: Poly Haven models, Sketchfab, Asset Store Free.
+
+
+4. PAINTINGS (public domain)
+----------------------------
+[MUST] 4-6 dark aristocratic portraits (17th-19th century) for the
+       vampire bloodline. Search e.g. "portrait nobleman 1700" on
+       Rijksmuseum / Met Open Access, filter public domain.
+[NICE] 1 large landscape of a castle or mansion at night.
+
+
+5. TEXTURES (CC0 - ambientCG / Poly Haven)
+------------------------------------------
+[MUST] Marble floor (checkered or polished)
+[MUST] Dark wood (floor planks, panelling, doors)
+[MUST] Stone / brick wall
+[MUST] Damask or patterned wallpaper
+[NICE] Plaster (cracked), worn fabric/velvet for curtains and rugs
+       Tip: download the 1K or 2K versions, PNG or JPG.
+
+
+6. SKY / LIGHTING
+-----------------
+[NICE] Night or moonlit HDRI (Poly Haven) for the skybox seen through
+       the windows. Download the .hdr or .exr.
+       (have) Assets/ThirdParty/Pickups/Rust Key/Scene/Skybox_scene.mat could work as a stopgap.
+
+
+7. AUDIO (Freesound / Pixabay)
+------------------------------
+[MUST] Door creak / open
+[MUST] Door locked rattle (handle jiggle)
+[MUST] Door slam (the gallery doors sealing for the fight)
+[MUST] Key pickup jingle
+[MUST] Paper / page turn (reading an exhibit plaque)
+[NICE] Indoor room tone or wind howling outside
+[NICE] Distant organ drone / gothic ambience
+[NICE] Candle/fire crackle (loop)
+[NICE] Glass shatter or stinger sound for the story reveal
+(have) Unseen-Horrors(chosic.com).mp3 - ambient music
+(have) clock-ticking-60-second-countdown - a grandfather clock in the gallery
+(have) Magic Spell_Coins_2.wav - fallback pickup sound
+
+
+8. FONTS (Google Fonts, OFL)
+----------------------------
+[NICE] IM Fell English - plaque body text
+[NICE] UnifrakturMaguntia (or Pirata One) - exhibit titles / headers
+       Download the .ttf.
+
+
+9. ALREADY HAVE (don't download again)
+--------------------------------------
+- Rust Key (Assets/ThirdParty/Pickups/Rust Key/) - the key model
+- Revolver/shotgun models, ammo and health pickups
+- Combat sounds
+
+
+10. IMPORT TIPS
+---------------
+- Prefer packs marked URP. Built-in RP packs show pink materials; switch
+  their materials to Universal Render Pipeline/Lit (like the health packs).
+- Prefer FBX over glTF (.glb/.gltf). Unity can't import glTF without the
+  extra glTFast package, and .glb is not in our Git LFS rules yet.
+- Git LFS already covers .png .jpg .tga .psd .tif .exr .hdr .fbx .obj .blend
+  .wav .mp3 .ogg .ttf .otf. Any other binary type (.glb, .tiff, .webp,
+  .flac, .zip) needs a rule in .gitattributes BEFORE committing.
+- Keep a docs/CREDITS.txt listing every CC-BY asset: name, author, link,
+  licence.
+- Import each pack into its own folder under Assets/ (like the existing
+  packs) and delete the demo scenes and extras you don't use, to keep the
+  repo small.
