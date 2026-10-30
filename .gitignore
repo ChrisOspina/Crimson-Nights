@@ -67,3 +67,7 @@ ExportedObj/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Editor crash-recovery scenes
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
