@@ -23,6 +23,8 @@ namespace StarterAssets
 		public bool dodge;
 		[Tooltip("Set on press; cleared by WeaponSwitcher when it consumes it")]
 		public bool switchWeapon;
+		[Tooltip("Set on press; cleared by PlayerInteractor when it consumes it")]
+		public bool interact;
 
 		[Header("Movement Settings")]
 		public bool analogMovement;
@@ -74,6 +76,11 @@ namespace StarterAssets
 		{
 			SwitchWeaponInput(value.isPressed);
 		}
+
+		public void OnInteract(InputValue value)
+		{
+			InteractInput(value.isPressed);
+		}
 #endif
 
 
@@ -116,6 +123,11 @@ namespace StarterAssets
 		public void SwitchWeaponInput(bool newSwitchWeaponState)
 		{
 			if (newSwitchWeaponState) switchWeapon = true;
+		}
+
+		public void InteractInput(bool newInteractState)
+		{
+			if (newInteractState) interact = true;
 		}
 		
 		private void OnApplicationFocus(bool hasFocus)

@@ -12,12 +12,12 @@ using UnityEngine.AI;
 public static class PrototypeArenaBuilder
 {
 	private const string ScenePath = "Assets/Scenes/Level1.unity";
-	private const string PlayerPrefabPath = "Assets/ThirdParty/Player/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
-	private const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
+	internal const string PlayerPrefabPath = "Assets/ThirdParty/Player/StarterAssets/FirstPersonController/Prefabs/PlayerCapsule.prefab";
+	internal const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
 	// small common heal (the jar) and big rare heal (the kit)
-	private const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
+	internal const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
 	private const string HealthKitPickupPrefabPath = "Assets/Prefabs/Pickups/HealthKitPickup_Proto.prefab";
-	private const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
+	internal const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
 	private const string ShotgunDataPath = "Assets/Data/Weapons/RelicShotgun.asset";
 	private const string MeleeDataPath = "Assets/Data/Weapons/Fists.asset";
@@ -52,9 +52,9 @@ public static class PrototypeArenaBuilder
 	private const int PlayerLayer = 8;
 	private const int EnemyLayer = 9;
 	// built-in; keeps pickups out of the NavMesh bake and the revolver's raycasts
-	private const int IgnoreRaycastLayer = 2;
+	internal const int IgnoreRaycastLayer = 2;
 
-	private const string LitShader = "Universal Render Pipeline/Lit";
+	internal const string LitShader = "Universal Render Pipeline/Lit";
 	private const string FxShader = "Universal Render Pipeline/Particles/Unlit";
 
 	[MenuItem("Tools/Crimson Nights/Build Prototype Arena")]
@@ -175,7 +175,7 @@ public static class PrototypeArenaBuilder
 		return material;
 	}
 
-	private static T GetOrCreateAsset<T>(string path, out bool created) where T : ScriptableObject
+	internal static T GetOrCreateAsset<T>(string path, out bool created) where T : ScriptableObject
 	{
 		T asset = AssetDatabase.LoadAssetAtPath<T>(path);
 		created = asset == null;
@@ -188,14 +188,14 @@ public static class PrototypeArenaBuilder
 	}
 
 	// optional: missing clips just leave the slot empty
-	private static AudioClip LoadClip(string fileName)
+	internal static AudioClip LoadClip(string fileName)
 	{
 		var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/{fileName}");
 		if (clip == null) Debug.LogWarning($"[PrototypeArenaBuilder] Audio clip not found: {AudioFolder}/{fileName}");
 		return clip;
 	}
 
-	private static void EnsureFolder(string folder)
+	internal static void EnsureFolder(string folder)
 	{
 		if (AssetDatabase.IsValidFolder(folder)) return;
 		string parent = System.IO.Path.GetDirectoryName(folder).Replace('\\', '/');
@@ -391,6 +391,8 @@ public static class PrototypeArenaBuilder
 			GetOrAdd<StyleMeter>(root).Data = styleData;
 
 			GetOrAdd<PlayerHUD>(root);
+			AddInteraction(root);
+			AddPlayerLight(root);
 
 			LowHealthBreathing breathing = GetOrAdd<LowHealthBreathing>(root);
 			if (breathing.BreathingClip == null) breathing.BreathingClip = LoadClip("breathing-6091.mp3");
@@ -468,6 +470,29 @@ public static class PrototypeArenaBuilder
 		front /= Mathf.Max(frontCount, 1);
 		muzzle.localPosition = front * scale + offset + Vector3.forward * 0.01f;
 		return true;
+	}
+
+	// looking at and using doors, keys and readables (the museum needs these; harmless in the arena)
+	internal static void AddInteraction(GameObject playerRoot)
+	{
+		GetOrAdd<KeyRing>(playerRoot);
+		GetOrAdd<PlayerInteractor>(playerRoot);
+	}
+
+	// A soft warm fill light carried at the camera, so the player's surroundings and viewmodels never go
+	// fully black in dark rooms. No shadows (it moves every frame). Created once: Inspector tweaks are kept
+	internal static void AddPlayerLight(GameObject playerRoot)
+	{
+		Transform cameraRoot = playerRoot.transform.Find("PlayerCameraRoot");
+		if (cameraRoot == null || cameraRoot.Find("PlayerLight") != null) return;
+
+		Transform lightTransform = GetOrCreateChild(cameraRoot, "PlayerLight", new Vector3(0f, 0.1f, 0.1f));
+		Light light = lightTransform.gameObject.AddComponent<Light>();
+		light.type = LightType.Point;
+		light.color = new Color(1f, 0.85f, 0.7f);
+		light.intensity = 1.2f;
+		light.range = 7f;
+		light.shadows = LightShadows.None;
 	}
 
 	private static void CreateViewmodelCube(Transform parent, string name, Vector3 localPosition, Vector3 scale, Material material)
@@ -920,7 +945,7 @@ public static class PrototypeArenaBuilder
 		return block;
 	}
 
-	private static void SetupCameras(Transform cameraRoot)
+	internal static void SetupCameras(Transform cameraRoot)
 	{
 		Camera mainCamera = Camera.main;
 		if (mainCamera == null)
@@ -949,7 +974,7 @@ public static class PrototypeArenaBuilder
 
 	// ---------------------------------------------------------------- helpers
 
-	private static T GetOrAdd<T>(GameObject go) where T : Component
+	internal static T GetOrAdd<T>(GameObject go) where T : Component
 	{
 		T component = go.GetComponent<T>();
 		return component != null ? component : go.AddComponent<T>();

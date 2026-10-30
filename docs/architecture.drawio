@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net">
   <diagram id="player-architecture" name="Player Architecture">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1250" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1420" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -24,7 +24,7 @@
         <mxCell id="pi" value="&lt;b&gt;PlayerInput&lt;/b&gt;&lt;br&gt;Behavior: Send Messages&lt;br&gt;&lt;i&gt;StarterAssets.inputactions&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="230" y="140" width="180" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="sai" value="&lt;b&gt;StarterAssetsInputs&lt;/b&gt;&lt;br&gt;On&amp;lt;Action&amp;gt; handlers&lt;br&gt;move · look · sprint&lt;br&gt;fire · melee · reload · dodge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="sai" value="&lt;b&gt;StarterAssetsInputs&lt;/b&gt;&lt;br&gt;On&amp;lt;Action&amp;gt; handlers&lt;br&gt;move · look · sprint&lt;br&gt;fire · melee · reload · dodge&lt;br&gt;switchWeapon · interact" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="450" y="140" width="190" height="90" as="geometry" />
         </mxCell>
         <mxCell id="fpc" value="&lt;b&gt;FirstPersonController&lt;/b&gt; &lt;i&gt;(locally modified)&lt;/i&gt;&lt;br&gt;Update: ApplyGravity → GroundedCheck → Move&lt;br&gt;LateUpdate: CameraRotation&lt;br&gt;Grounded = sphere check vs GroundLayers&lt;br&gt;&lt;i&gt;no jumping&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
@@ -122,7 +122,7 @@
         <mxCell id="hp" value="&lt;b&gt;Health&lt;/b&gt;&lt;br&gt;Damaged(DamageInfo) · Died&lt;br&gt;&lt;i&gt;player &amp;amp; enemies&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="290" y="660" width="190" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="hud" value="&lt;b&gt;PlayerHUD&lt;/b&gt;&lt;br&gt;runtime uGUI: health, ammo,&lt;br&gt;crosshair, damage flash, style rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+        <mxCell id="hud" value="&lt;b&gt;PlayerHUD&lt;/b&gt;&lt;br&gt;runtime uGUI: health, ammo,&lt;br&gt;crosshair, damage flash, style rank,&lt;br&gt;interact prompt · messages · reading panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="540" y="620" width="200" height="80" as="geometry" />
         </mxCell>
         <mxCell id="death" value="&lt;b&gt;PlayerDeath&lt;/b&gt;&lt;br&gt;disable control → reload scene" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
@@ -204,24 +204,47 @@
           <mxGeometry x="960" y="970" width="180" height="50" as="geometry" />
         </mxCell>
 
+        <!-- Phase 3 -->
+        <mxCell id="museum" value="Phase 3 — Museum prototype (Museum.unity)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=1;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontColor=#777777;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1060" width="1140" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="m0" value="&lt;b&gt;PlayerInteractor&lt;/b&gt; (on PlayerCapsule)&lt;br&gt;sphere-cast from Camera.main, 2.5 m&lt;br&gt;E / pad East → Interactable.Interact&lt;br&gt;owns reading state → PlayerHUD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="200" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="&lt;b&gt;Interactable&lt;/b&gt; (abstract)&lt;br&gt;&lt;b&gt;Door&lt;/b&gt;: hinge swing, lock, RequiredKey,&lt;br&gt;Close(lock) · Unlock · NavMeshObstacle&lt;br&gt;&lt;b&gt;KeyPickup&lt;/b&gt; · &lt;b&gt;Readable&lt;/b&gt; (title + body)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1100" width="220" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="&lt;b&gt;KeyRing&lt;/b&gt; (on PlayerCapsule)&lt;br&gt;keys carried; doors check Has(key)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1100" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="&lt;b&gt;KeyData&lt;/b&gt; (SO)&lt;br&gt;Assets/Data/Keys" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1150" width="170" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="&lt;b&gt;Encounter&lt;/b&gt; (trigger)&lt;br&gt;bars Doors → spawns enemies →&lt;br&gt;on clear: Unlock + reveal reward&lt;br&gt;(key at the last kill)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="690" y="1100" width="190" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="m5" value="&lt;b&gt;Museum.unity&lt;/b&gt; ← MuseumBuilder&lt;br&gt;corridor → Grand Gallery → History Wing&lt;br&gt;LightFlicker candles · fog · post volume&lt;br&gt;RuntimeNavMeshBaker on Museum root" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="1100" width="240" height="64" as="geometry" />
+        </mxCell>
+
         <!-- Legend -->
         <mxCell id="lg_title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="20" y="1060" width="80" height="20" as="geometry" />
+          <mxGeometry x="20" y="1230" width="80" height="20" as="geometry" />
         </mxCell>
         <mxCell id="lg1" value="Starter Assets (re-import overwrites local edits)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="20" y="1085" width="260" height="30" as="geometry" />
+          <mxGeometry x="20" y="1255" width="260" height="30" as="geometry" />
         </mxCell>
         <mxCell id="lg2" value="Project code (Assets/Scripts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="300" y="1085" width="200" height="30" as="geometry" />
+          <mxGeometry x="300" y="1255" width="200" height="30" as="geometry" />
         </mxCell>
         <mxCell id="lg3" value="Unity built-in / child object" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="520" y="1085" width="200" height="30" as="geometry" />
+          <mxGeometry x="520" y="1255" width="200" height="30" as="geometry" />
         </mxCell>
         <mxCell id="lg5" value="ScriptableObject data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="920" y="1085" width="160" height="30" as="geometry" />
+          <mxGeometry x="920" y="1255" width="160" height="30" as="geometry" />
         </mxCell>
         <mxCell id="lg4" value="Planned, not built" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;fontColor=#555555;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="740" y="1085" width="160" height="30" as="geometry" />
+          <mxGeometry x="740" y="1255" width="160" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

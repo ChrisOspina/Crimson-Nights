@@ -25,12 +25,18 @@ public class PlayerHUD : MonoBehaviour
 	[Tooltip("Seconds a callout (\"FINISHER\", \"DOUBLE KILL\"...) stays on screen")]
 	public float CalloutTime = 1.2f;
 
+	[Header("Interaction")]
+	public string InteractButtonHint = "[E]";
+	[Tooltip("Seconds a message (\"Locked\", \"Picked up the key\"...) stays on screen")]
+	public float MessageTime = 3f;
+
 	private Health _health;
 	private Firearm[] _firearms;
 	private WeaponSwitcher _switcher;
 	private MeleeWeapon _melee;
 	private PlayerDodge _dodge;
 	private StyleMeter _style;
+	private PlayerInteractor _interactor;
 
 	private RectTransform _healthFill;
 	private Text _ammoText;
@@ -53,6 +59,13 @@ public class PlayerHUD : MonoBehaviour
 	private float _calloutEndTime;
 	private float _rankPunch; // 1 right after a rank change, decays to 0
 
+	private Text _promptText;
+	private Text _messageText;
+	private float _messageEndTime;
+	private GameObject _readPanel;
+	private Text _readTitle;
+	private Text _readBody;
+
 	private void Awake()
 	{
 		_health = GetComponent<Health>();
@@ -61,6 +74,7 @@ public class PlayerHUD : MonoBehaviour
 		_melee = GetComponent<MeleeWeapon>();
 		_dodge = GetComponent<PlayerDodge>();
 		_style = GetComponent<StyleMeter>();
+		_interactor = GetComponent<PlayerInteractor>();
 		BuildUI();
 	}
 
@@ -76,6 +90,7 @@ public class PlayerHUD : MonoBehaviour
 			_style.RankChanged += OnRankChanged;
 			_style.Callout += OnStyleCallout;
 		}
+		if (_interactor != null) _interactor.ReadingChanged += OnReadingChanged;
 	}
 
 	private void OnDisable()
@@ -90,6 +105,7 @@ public class PlayerHUD : MonoBehaviour
 			_style.RankChanged -= OnRankChanged;
 			_style.Callout -= OnStyleCallout;
 		}
+		if (_interactor != null) _interactor.ReadingChanged -= OnReadingChanged;
 	}
 
 	private void Start()
@@ -118,6 +134,37 @@ public class PlayerHUD : MonoBehaviour
 		_crosshair.rectTransform.sizeDelta = Vector2.Lerp(_crosshair.rectTransform.sizeDelta, new Vector2(size, size), Time.deltaTime * 20f);
 
 		UpdateStyle();
+		UpdateInteraction();
+	}
+
+	private void UpdateInteraction()
+	{
+		// prompt for whatever is under the crosshair; while reading it offers to close the text instead
+		Interactable target = _interactor != null && _interactor.enabled ? _interactor.Current : null;
+		bool reading = _interactor != null && _interactor.Reading != null;
+		_promptText.gameObject.SetActive(target != null || reading);
+		if (reading) _promptText.text = InteractButtonHint + " Close";
+		else if (target != null) _promptText.text = InteractButtonHint + " " + target.Prompt;
+
+		float messageLeft = _messageEndTime - Time.unscaledTime;
+		_messageText.gameObject.SetActive(messageLeft > 0f);
+		Color messageColor = _messageText.color;
+		messageColor.a = Mathf.Clamp01(messageLeft / 0.5f);
+		_messageText.color = messageColor;
+	}
+
+	public void ShowMessage(string text)
+	{
+		_messageText.text = text;
+		_messageEndTime = Time.unscaledTime + MessageTime;
+	}
+
+	private void OnReadingChanged(Readable readable)
+	{
+		_readPanel.SetActive(readable != null);
+		if (readable == null) return;
+		_readTitle.text = readable.Title;
+		_readBody.text = readable.Body;
 	}
 
 	private void UpdateStyle()
@@ -320,6 +367,7 @@ public class PlayerHUD : MonoBehaviour
 		_weaponText.color = new Color(1f, 1f, 1f, 0.7f);
 
 		BuildStyleMeter(root, font);
+		BuildInteractionUI(root, font);
 
 		// death message
 		_deathText = CreateText("DeathText", root, font, 96, TextAnchor.MiddleCenter);
@@ -327,6 +375,51 @@ public class PlayerHUD : MonoBehaviour
 		_deathText.color = new Color(0.8f, 0.05f, 0.05f);
 		Stretch(_deathText.rectTransform);
 		_deathText.gameObject.SetActive(false);
+	}
+
+	// interact prompt under the crosshair, messages in the lower third, and a centred panel for reading
+	private void BuildInteractionUI(RectTransform root, Font font)
+	{
+		_promptText = CreateText("InteractPrompt", root, font, 26, TextAnchor.MiddleCenter);
+		_promptText.rectTransform.anchoredPosition = new Vector2(0f, -70f);
+		_promptText.rectTransform.sizeDelta = new Vector2(800f, 40f);
+		_promptText.gameObject.SetActive(false);
+
+		_messageText = CreateText("Message", root, font, 30, TextAnchor.MiddleCenter);
+		RectTransform messageRect = _messageText.rectTransform;
+		messageRect.anchorMin = messageRect.anchorMax = new Vector2(0.5f, 0f);
+		messageRect.anchoredPosition = new Vector2(0f, 220f);
+		messageRect.sizeDelta = new Vector2(1200f, 50f);
+		_messageText.color = new Color(0.92f, 0.86f, 0.75f, 1f);
+		_messageText.gameObject.SetActive(false);
+
+		Image panel = CreateImage("ReadPanel", root, new Color(0.05f, 0.03f, 0.03f, 0.88f));
+		RectTransform panelRect = panel.rectTransform;
+		panelRect.sizeDelta = new Vector2(820f, 560f);
+		_readPanel = panel.gameObject;
+
+		_readTitle = CreateText("Title", panelRect, font, 34, TextAnchor.UpperCenter);
+		PlaceInPanel(_readTitle.rectTransform, 36f, 50f);
+		_readTitle.color = new Color(0.85f, 0.2f, 0.2f, 1f);
+		_readTitle.fontStyle = FontStyle.Bold;
+
+		_readBody = CreateText("Body", panelRect, font, 24, TextAnchor.UpperLeft);
+		PlaceInPanel(_readBody.rectTransform, 110f, 410f);
+		_readBody.color = new Color(0.92f, 0.88f, 0.8f, 1f);
+		_readBody.lineSpacing = 1.15f;
+		_readBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+		_readPanel.SetActive(false);
+	}
+
+	// a row of the reading panel with 50px side margins, its top edge y pixels below the panel's top
+	private static void PlaceInPanel(RectTransform rect, float y, float height)
+	{
+		rect.anchorMin = new Vector2(0f, 1f);
+		rect.anchorMax = new Vector2(1f, 1f);
+		rect.pivot = new Vector2(0.5f, 1f);
+		rect.anchoredPosition = new Vector2(0f, -y);
+		rect.sizeDelta = new Vector2(-100f, height);
 	}
 
 	// style rank, right edge of the screen: big letter, rank name, progress bar, callout
