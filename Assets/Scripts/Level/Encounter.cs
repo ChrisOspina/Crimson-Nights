@@ -20,6 +20,10 @@ public class Encounter : MonoBehaviour
 	public string StartMessage;
 	public string ClearedMessage;
 
+	[Header("Sounds")]
+	[Tooltip("Played once as the encounter starts (a clock striking, glass breaking)")]
+	public AudioSource[] StartSounds;
+
 	[Header("Reward")]
 	[Tooltip("Inactive until the encounter is cleared")]
 	public GameObject Reward;
@@ -49,6 +53,13 @@ public class Encounter : MonoBehaviour
 		foreach (Door door in BarDoors)
 		{
 			if (door != null) door.Close(true, BarredMessage);
+		}
+		if (StartSounds != null)
+		{
+			foreach (AudioSource sound in StartSounds)
+			{
+				if (sound != null) sound.Play();
+			}
 		}
 		if (_player != null) _player.ShowMessage(StartMessage);
 		Invoke(nameof(Spawn), SpawnDelay);

@@ -40,12 +40,23 @@ public static class MuseumBuilder
 	// the prefab still uses the pack's Built-in "Autodesk Interactive" material (pink in URP); this is the
 	// hand-converted URP/Lit copy
 	private const string KeyMaterialPath = "Assets/ThirdParty/Pickups/Rust Key/Materials/rust_key_standard.mat";
+	// the clock pack is a loose FBX and PBR maps with no material; the builder makes a URP/Lit one
+	private const string ClockFolder = "Assets/ThirdParty/Props/old-grandfather-clock/";
+	private const string ClockModelPath = ClockFolder + "source/GrandfatherClockWylam.fbx";
+	private const string ClockTextures = ClockFolder + "textures/ClockFinal_standardSurface1_";
+	private const string ClockMaterialPath = ClockFolder + "Materials/GrandfatherClock.mat";
 
 	private const string DoorOpenClip = "freesound_community-door-creak-38423.mp3";
 	private const string DoorSlamClip = "freesound_community-door-slam-79889.mp3";
 	private const string DoorLockedClip = "freesound_community-rattlinglockeddoor-100095.mp3";
 	private const string KeyClip = "litupsubway-key-collect-sfx-522219.mp3";
 	private const string PageClip = "creatorshome-turn-a-page-336933.mp3";
+	private const string ClockTickClip = "clock-ticking-60-second-countdown-118231.mp3";
+	private const string ClockChimeClip = "alex_jauk-old-town-church-bells-ringing-181482.mp3";
+	private const string GlassBreakClip = "dragon-studio-glass-breaking-504033.mp3";
+	private const string RoomToneClip = "placidplace-haunted-house-ambience-21831.mp3";
+	private const string WindClip = "soundsforyou-wind-outside-sound-ambient-141989.mp3";
+	private const string FireClip = "soundreality-fire-crackling-sound-499636.mp3";
 
 	private const int IgnoreRaycastLayer = PrototypeArenaBuilder.IgnoreRaycastLayer;
 
@@ -88,6 +99,7 @@ public static class MuseumBuilder
 		_wood = LoadMaterial("Dark Wood", new Color(0.22f, 0.13f, 0.08f));
 		_fabric = LoadMaterial("Fabric", new Color(0.4f, 0.05f, 0.07f));
 		_pageClip = PrototypeArenaBuilder.LoadClip(PageClip);
+		ConfigureAudioImports();
 
 		KeyData wingKey = GetOrCreateKey(WingKeyPath, "History Wing Key");
 		KeyData archiveKey = GetOrCreateKey(ArchiveKeyPath, "Archive Key");
@@ -261,6 +273,9 @@ public static class MuseumBuilder
 		volume.transform.SetParent(root, false);
 		volume.isGlobal = true;
 		volume.sharedProfile = profile;
+
+		// the house creaking and groaning everywhere, quietly, under the room sounds
+		AddSound(root, "RoomTone", Vector3.zero, RoomToneClip, 0.3f, 0f, 0f, true);
 	}
 
 	// ---------------------------------------------------------------- rooms
@@ -379,8 +394,16 @@ public static class MuseumBuilder
 			GameObject stand = PlaceProp(room, Pegasus + "Candle Stand.prefab", new Vector3(x, DaisHeight, 13.3f), 0f, 1.8f);
 			AddCandleLight(room, stand, 2f, 6f);
 		}
+		AddSound(room, "CandleCrackle", new Vector3(0f, DaisHeight + 1.6f, 13.3f), FireClip, 0.3f, 1f, 6f, true);
+
+		// the storm against the middle windows
+		foreach (float x in new[] { -11.9f, 11.9f })
+		{
+			AddSound(room, "Wind", new Vector3(x, 4.8f, 1f), WindClip, 0.5f, 2f, 16f, true);
+		}
 
 		BuildGalleryExhibits(room);
+		AudioSource chime = BuildClock(room);
 
 		// decoration: portraits either side of the entrance, vases on the dais, cobwebs high in the corners
 		PlaceOnWall(room, Frames + "SM_frame_01.prefab", new Vector3(-6f, 2.8f, -14f), Vector3.forward, 1.8f);
@@ -397,11 +420,17 @@ public static class MuseumBuilder
 		wingDoor.Locked = true;
 		wingDoor.RequiredKey = wingKey;
 
-		// the fight: crossing into the gallery slams the corridor door and two thralls appear by the stairs
+		// the fight: crossing into the gallery slams the corridor door, the clock strikes, the north windows
+		// shatter and two thralls appear by the stairs
+		var startSounds = new List<AudioSource> { chime };
+		foreach (float x in new[] { -11.9f, 11.9f })
+		{
+			startSounds.Add(AddSound(room, "GlassBreak", new Vector3(x, 4.8f, 7f), GlassBreakClip, 1f, 3f, 35f, false));
+		}
 		GameObject key = CreateKeyPickup(room, wingKey, new Vector3(0f, 0f, 2f));
 		CreateEncounter(room, "GalleryEncounter", new Vector3(0f, 1.5f, -10.5f), new Vector3(24f, 3f, 3f), enemyPrefab,
 			new[] { new Vector3(-5f, 0f, 5.5f), new Vector3(5f, 0f, 5.5f) }, entranceDoor,
-			"The doors slam shut behind you.", "The gallery falls silent. Something glints on the floor.", key);
+			"The doors slam shut behind you.", "The gallery falls silent. Something glints on the floor.", key, startSounds.ToArray());
 
 		PlacePickup(room, PrototypeArenaBuilder.AmmoPickupPrefabPath, new Vector3(10.5f, 0f, -12.5f));
 		PlacePickup(room, PrototypeArenaBuilder.HealthPickupPrefabPath, new Vector3(-10.5f, 0f, 6.5f));
@@ -460,6 +489,26 @@ public static class MuseumBuilder
 			"Please do not touch the flowers. They have not been cut.");
 	}
 
+	// the grandfather clock against the north wall of the dais, west of the wing door, ticking. Returns its
+	// chime, which the gallery encounter plays. It's hung like a painting so its face (the side with more
+	// detail) turns to the room, so check it visually after changes
+	private static AudioSource BuildClock(Transform room)
+	{
+		const float height = 2.3f;
+		GameObject clock = PlaceOnWall(room, ClockModelPath, new Vector3(-4f, DaisHeight + height * 0.5f, 14f), Vector3.back, height);
+		Vector3 sound = new Vector3(-4f, DaisHeight + height * 0.6f, 13.6f);
+		if (clock != null)
+		{
+			AddBoundsCollider(clock);
+			Material material = GetOrCreateClockMaterial();
+			if (material != null) SetMaterials(clock, material);
+			sound = WorldBounds(clock).center;
+		}
+
+		AddSound(room, "ClockTick", sound, ClockTickClip, 0.6f, 1f, 10f, true);
+		return AddSound(room, "ClockChime", sound, ClockChimeClip, 0.8f, 3f, 45f, false);
+	}
+
 	// 12 x 12 m at dais height, z 14.5 .. 26. The Morvayne tomb, coffins along the walls, the curator's
 	// journal, a second ambush, and the locked Archive door teasing what's next
 	private static void BuildWing(Transform root, GameObject enemyPrefab, KeyData archiveKey, Door wingDoor)
@@ -488,6 +537,7 @@ public static class MuseumBuilder
 			GameObject candle = PlaceProp(room, Dungeon + "Misc/Light/NGF_Light_Candle_large_02.prefab", new Vector3(corner.x, floor + 0.2f, corner.y), 0f, 0.5f, false);
 			AddCandleLight(room, candle, 1.5f, 5f);
 		}
+		AddSound(room, "CandleCrackle", new Vector3(0f, floor + 0.8f, 21.5f), FireClip, 0.35f, 1f, 7f, true);
 		CreatePlacard(room, new Vector3(0f, floor, 18.6f), 180f,
 			"Exhibit V - The Morvayne Tomb",
 			"Carved limestone, fifteenth century. The founder of the line is said to rest here.\n\n" +
@@ -681,15 +731,7 @@ public static class MuseumBuilder
 			foreach (Transform t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = IgnoreRaycastLayer;
 
 			var keyMaterial = AssetDatabase.LoadAssetAtPath<Material>(KeyMaterialPath);
-			if (keyMaterial != null)
-			{
-				foreach (Renderer keyRenderer in model.GetComponentsInChildren<Renderer>(true))
-				{
-					var materials = new Material[keyRenderer.sharedMaterials.Length];
-					for (int i = 0; i < materials.Length; i++) materials[i] = keyMaterial;
-					keyRenderer.sharedMaterials = materials;
-				}
-			}
+			if (keyMaterial != null) SetMaterials(model, keyMaterial);
 			else
 			{
 				Debug.LogWarning("[MuseumBuilder] Key material not found at " + KeyMaterialPath + ", the key may render pink.");
@@ -719,7 +761,7 @@ public static class MuseumBuilder
 	}
 
 	private static void CreateEncounter(Transform parent, string name, Vector3 centre, Vector3 size, GameObject enemyPrefab,
-		Vector3[] spawnPositions, Door barDoor, string startMessage, string clearedMessage, GameObject reward)
+		Vector3[] spawnPositions, Door barDoor, string startMessage, string clearedMessage, GameObject reward, AudioSource[] startSounds = null)
 	{
 		var go = new GameObject(name);
 		go.layer = IgnoreRaycastLayer;
@@ -751,6 +793,7 @@ public static class MuseumBuilder
 		encounter.StartMessage = startMessage;
 		encounter.ClearedMessage = clearedMessage;
 		encounter.Reward = reward;
+		encounter.StartSounds = startSounds ?? new AudioSource[0];
 	}
 
 	private static void PlacePickup(Transform parent, string prefabPath, Vector3 position)
@@ -791,6 +834,160 @@ public static class MuseumBuilder
 			lightData.ApplyModifiedPropertiesWithoutUndo();
 		}
 		if (flicker) light.gameObject.AddComponent<LightFlicker>();
+	}
+
+	// ---------------------------------------------------------------- sound
+
+	// A sound at `position`, fading out linearly between `minDistance` and `maxDistance` (2D when
+	// `maxDistance` is 0). Loops play through AmbientLoop; one-shots wait for a script to play them
+	private static AudioSource AddSound(Transform parent, string name, Vector3 position, string clipName, float volume, float minDistance, float maxDistance, bool loop)
+	{
+		var source = new GameObject(name).AddComponent<AudioSource>();
+		source.transform.SetParent(parent, false);
+		source.transform.position = position;
+		source.clip = PrototypeArenaBuilder.LoadClip(clipName);
+		source.volume = volume;
+		source.playOnAwake = false;
+		source.loop = loop;
+		if (maxDistance > 0f)
+		{
+			source.spatialBlend = 1f;
+			source.rolloffMode = AudioRolloffMode.Linear;
+			source.minDistance = minDistance;
+			source.maxDistance = maxDistance;
+		}
+		if (loop) source.gameObject.AddComponent<AmbientLoop>();
+		return source;
+	}
+
+	// long loops stream instead of sitting decoded in memory, and the 3D ones are mono (3D sources pan a
+	// mono signal anyway)
+	private static void ConfigureAudioImports()
+	{
+		ConfigureAudioImport(RoomToneClip, true, false);
+		ConfigureAudioImport(WindClip, true, true);
+		ConfigureAudioImport(FireClip, true, true);
+		ConfigureAudioImport(ClockTickClip, true, true);
+		ConfigureAudioImport(ClockChimeClip, true, true);
+		ConfigureAudioImport(GlassBreakClip, false, true);
+	}
+
+	private static void ConfigureAudioImport(string fileName, bool stream, bool mono)
+	{
+		var importer = AssetImporter.GetAtPath($"{PrototypeArenaBuilder.AudioFolder}/{fileName}") as AudioImporter;
+		if (importer == null) return;
+
+		AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+		AudioClipLoadType loadType = stream ? AudioClipLoadType.Streaming : AudioClipLoadType.DecompressOnLoad;
+		if (settings.loadType == loadType && settings.compressionFormat == AudioCompressionFormat.Vorbis && importer.forceToMono == mono) return;
+
+		settings.loadType = loadType;
+		settings.compressionFormat = AudioCompressionFormat.Vorbis;
+		importer.defaultSampleSettings = settings;
+		importer.forceToMono = mono;
+		importer.SaveAndReimport();
+	}
+
+	// ---------------------------------------------------------------- clock material
+
+	// The clock pack has loose PBR maps and no material. URP/Lit reads smoothness from the metallic map's
+	// alpha, so the metallic and roughness maps are baked into one texture (alpha = 1 - roughness).
+	// Made once and reused, so Inspector tweaks stick; delete the material to remake it
+	private static Material GetOrCreateClockMaterial()
+	{
+		var material = AssetDatabase.LoadAssetAtPath<Material>(ClockMaterialPath);
+		if (material != null) return material;
+
+		var baseMap = AssetDatabase.LoadAssetAtPath<Texture2D>(ClockTextures + "BaseColor.png");
+		if (baseMap == null)
+		{
+			Debug.LogWarning("[MuseumBuilder] Clock textures not found under " + ClockFolder + ", the clock keeps its imported material.");
+			return null;
+		}
+
+		material = new Material(Shader.Find(PrototypeArenaBuilder.LitShader)) { name = "GrandfatherClock" };
+		material.SetTexture("_BaseMap", baseMap);
+		material.SetColor("_BaseColor", Color.white);
+
+		Texture2D metallicSmoothness = BakeMetallicSmoothness();
+		if (metallicSmoothness != null)
+		{
+			material.SetTexture("_MetallicGlossMap", metallicSmoothness);
+			material.SetFloat("_Smoothness", 1f);
+			material.EnableKeyword("_METALLICSPECGLOSSMAP");
+		}
+
+		string normalPath = ClockTextures + "Normal.png";
+		SetTextureImport(normalPath, TextureImporterType.NormalMap);
+		var normal = AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath);
+		if (normal != null)
+		{
+			material.SetTexture("_BumpMap", normal);
+			material.EnableKeyword("_NORMALMAP");
+		}
+
+		PrototypeArenaBuilder.EnsureFolder(ClockFolder + "Materials");
+		AssetDatabase.CreateAsset(material, ClockMaterialPath);
+		return material;
+	}
+
+	// metallic in RGB, smoothness in A, saved next to the pack's maps (reused if it's already there)
+	private static Texture2D BakeMetallicSmoothness()
+	{
+		string path = ClockTextures + "MetallicSmoothness.png";
+		var existing = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+		if (existing != null) return existing;
+
+		// read the PNGs straight from disk, so their import settings don't need to be readable
+		Texture2D metallic = LoadImageFile(ClockTextures + "Metallic.png");
+		Texture2D roughness = LoadImageFile(ClockTextures + "Roughness.png");
+		if (metallic == null || roughness == null || metallic.width != roughness.width || metallic.height != roughness.height)
+		{
+			Debug.LogWarning("[MuseumBuilder] Clock metallic/roughness maps missing or mismatched, the clock gets a flat smoothness.");
+			return null;
+		}
+
+		Color32[] m = metallic.GetPixels32(), r = roughness.GetPixels32();
+		var pixels = new Color32[m.Length];
+		for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32(m[i].r, m[i].r, m[i].r, (byte)(255 - r[i].r));
+		var baked = new Texture2D(metallic.width, metallic.height, TextureFormat.RGBA32, false, true);
+		baked.SetPixels32(pixels);
+		System.IO.File.WriteAllBytes(System.IO.Path.GetFullPath(path), baked.EncodeToPNG());
+		Object.DestroyImmediate(metallic);
+		Object.DestroyImmediate(roughness);
+		Object.DestroyImmediate(baked);
+
+		AssetDatabase.ImportAsset(path);
+		SetTextureImport(path, TextureImporterType.Default);
+		return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+	}
+
+	private static Texture2D LoadImageFile(string path)
+	{
+		string fullPath = System.IO.Path.GetFullPath(path);
+		if (!System.IO.File.Exists(fullPath)) return null;
+		var texture = new Texture2D(2, 2);
+		return texture.LoadImage(System.IO.File.ReadAllBytes(fullPath)) ? texture : null;
+	}
+
+	// data maps (normal, metallic/smoothness) are linear, not sRGB colour
+	private static void SetTextureImport(string path, TextureImporterType type)
+	{
+		var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+		if (importer == null || (importer.textureType == type && !importer.sRGBTexture)) return;
+		importer.textureType = type;
+		importer.sRGBTexture = false;
+		importer.SaveAndReimport();
+	}
+
+	private static void SetMaterials(GameObject go, Material material)
+	{
+		foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>(true))
+		{
+			var materials = new Material[renderer.sharedMaterials.Length];
+			for (int i = 0; i < materials.Length; i++) materials[i] = material;
+			renderer.sharedMaterials = materials;
+		}
 	}
 
 	// ---------------------------------------------------------------- props

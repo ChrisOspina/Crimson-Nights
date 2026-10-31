@@ -43,7 +43,7 @@ public static class PrototypeArenaBuilder
 	private const string HealthJarModelPath = "Assets/ThirdParty/Pickups/First aid jar/Prefabs/Firstaid_2.prefab";
 	private const string HealthKitModelPath = "Assets/ThirdParty/Pickups/GeeKay3D/First-Aid-Set/Assets/Prefabs/FirstAidKit_Red.prefab";
 	private const string MaterialFolder = "Assets/Materials/Proto";
-	private const string AudioFolder = "Assets/Audio";
+	internal const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";
 	private const string AmmoPickupClipName = "freesound_community-revolver-cocking-104722.mp3";
 

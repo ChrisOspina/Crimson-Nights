@@ -33,77 +33,12 @@ WHERE TO LOOK (all free)
 [NICE] Polybrush - paint dirt or vertex colour onto floors and walls.
 
 
-2. ARCHITECTURE
----------------
-[MUST] Modular gothic / Victorian / castle interior kit: walls, floor tiles,
-       arches, columns, ceiling pieces, window frames.
-       Asset Store search: "gothic interior", "medieval castle modular",
-       "victorian interior", "dungeon modular" (Free filter).
-       Also try Quaternius and Kenney castle/dungeon kits.
-[MUST] Staircase + balcony railing (the key is up on the balcony).
-       If no kit has one, build it with ProBuilder.
-[MUST] Wooden door with a frame (2 doors needed: the locked Vampire
-       History door and the gallery entrance that seals during the fight).
-       The door mesh should have its pivot at the hinge, or be easy to re-pivot.
-[NICE] Stained-glass window (or make one: a quad + emissive texture).
-
-
-3. PROPS
---------
-[MUST] Chandelier (centrepiece of the Grand Gallery)
-[MUST] Candles / candelabras / wall sconces (main light sources)
-[MUST] Display cases or glass vitrines + pedestals/plinths (exhibits)
-[MUST] Picture frames (put the public-domain paintings in them)
-[MUST] Statues or busts (2-3)
-[MUST] Coffin (the broken-open reveal exhibit in the Vampire History room)
-[NICE] Bookshelves, old books, scrolls, journals
-[NICE] Victorian furniture: armchairs, side tables, rugs, curtains
-[NICE] Ropes/stanchions (museum barrier posts) - sells the "museum" feel
-[NICE] Ancient weapons on wall mounts (swords, stakes, crossbow)
-[NICE] Cobwebs, dust decals, broken glass
-       Sources: Poly Haven models, Sketchfab, Asset Store Free.
-
-
-4. PAINTINGS (public domain)
-----------------------------
-[MUST] 4-6 dark aristocratic portraits (17th-19th century) for the
-       vampire bloodline. Search e.g. "portrait nobleman 1700" on
-       Rijksmuseum / Met Open Access, filter public domain.
-[NICE] 1 large landscape of a castle or mansion at night.
-
-
-5. TEXTURES (CC0 - ambientCG / Poly Haven)
-------------------------------------------
-[MUST] Marble floor (checkered or polished)
-[MUST] Dark wood (floor planks, panelling, doors)
-[MUST] Stone / brick wall
-[MUST] Damask or patterned wallpaper
-[NICE] Plaster (cracked), worn fabric/velvet for curtains and rugs
-       Tip: download the 1K or 2K versions, PNG or JPG.
-
-
-6. SKY / LIGHTING
------------------
-[NICE] Night or moonlit HDRI (Poly Haven) for the skybox seen through
-       the windows. Download the .hdr or .exr.
-       (have) Assets/ThirdParty/Pickups/Rust Key/Scene/Skybox_scene.mat could work as a stopgap.
-
-
 7. AUDIO (Freesound / Pixabay)
 ------------------------------
-[MUST] Door creak / open
-[MUST] Door locked rattle (handle jiggle)
-[MUST] Door slam (the gallery doors sealing for the fight)
-[MUST] Key pickup jingle
-[MUST] Paper / page turn (reading an exhibit plaque)
 [NICE] Indoor room tone or wind howling outside
 [NICE] Distant organ drone / gothic ambience
 [NICE] Candle/fire crackle (loop)
 [NICE] Glass shatter or stinger sound for the story reveal
-(have) Unseen-Horrors(chosic.com).mp3 - ambient music
-(have) clock-ticking-60-second-countdown - a grandfather clock in the gallery
-(have) Magic Spell_Coins_2.wav - fallback pickup sound
-
 
 8. FONTS (Google Fonts, OFL)
 ----------------------------
