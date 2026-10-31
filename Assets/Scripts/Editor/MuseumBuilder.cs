@@ -114,6 +114,7 @@ public static class MuseumBuilder
 		BuildCorridor(root, out Door entranceDoor);
 		BuildGallery(root, enemyPrefab, wingKey, entranceDoor, out Door wingDoor);
 		BuildWing(root, enemyPrefab, archiveKey, wingDoor);
+		BuildArchive(root);
 
 		// navmesh, baked at runtime from the colliders under the root (doors are left out of the bake)
 		var surface = root.gameObject.AddComponent<NavMeshSurface>();
@@ -510,7 +511,7 @@ public static class MuseumBuilder
 	}
 
 	// 12 x 12 m at dais height, z 14.5 .. 26. The Morvayne tomb, coffins along the walls, the curator's
-	// journal, a second ambush, and the locked Archive door teasing what's next
+	// journal, a second ambush, the coffin puzzle and the locked Archive door
 	private static void BuildWing(Transform root, GameObject enemyPrefab, KeyData archiveKey, Door wingDoor)
 	{
 		Transform room = Group(root, "HistoryWing");
@@ -527,7 +528,6 @@ public static class MuseumBuilder
 		archiveDoor.Locked = true;
 		archiveDoor.RequiredKey = archiveKey;
 		archiveDoor.LockedMessage = "A brass plate reads: ARCHIVE - STAFF ONLY. It needs the Archive Key.";
-		CreateBox(room, "ArchiveDoorBacking", new Vector3(0f, floor + 1.4f, 26.75f), new Vector3(2.4f, 2.8f, 0.5f), _stone, 2f);
 
 		// the tomb on a low step, candles at its corners
 		CreateBox(room, "TombStep", new Vector3(0f, floor + 0.1f, 21.5f), new Vector3(3.6f, 0.2f, 4.4f), _marble, 1f);
@@ -544,12 +544,26 @@ public static class MuseumBuilder
 			"The case is sealed for the visitor's protection.\n\n" +
 			"It does not open from this side.");
 
-		// coffins lying along the side walls
-		foreach (float z in new[] { 18.5f, 23.5f })
-		{
-			PlaceProp(room, Coffins + "Coffins/Coffin_Wood_B_1.prefab", new Vector3(-5f, floor, z), 0f, 0.7f, true, 2.2f);
-			PlaceProp(room, Coffins + "Coffins/Coffin_Wood_B_1.prefab", new Vector3(5f, floor, z), 0f, 0.7f, true, 2.2f);
-		}
+		// the family's coffins along the side walls. The register names the one the family disowned, and that's
+		// where the curator hid the Archive Key ("where the family will never look: among their own dead");
+		// another one isn't empty
+		CreateSearchableCoffin(room, new Vector3(-5f, floor, 18.5f), "Isolde Morvayne's coffin",
+			"Lace, dust and an empty pillow. Nobody was ever laid in here.");
+		Encounter ambush = CreateEncounter(room, "CoffinAmbush", new Vector3(-5f, floor + 1.5f, 23.5f), Vector3.one, enemyPrefab,
+			new[] { new Vector3(-3.6f, floor, 23.5f) }, null, null, "Aurelian Morvayne rests properly now.", null);
+		ambush.GetComponent<Collider>().enabled = false;
+		CreateSearchableCoffin(room, new Vector3(-5f, floor, 23.5f), "Aurelian Morvayne's coffin",
+			"The lid is warm. Something inside breathes in.", null, ambush);
+		CreateSearchableCoffin(room, new Vector3(5f, floor, 18.5f), "Elias Morvayne's coffin",
+			"Under the shroud, a rusted key on a museum tag: ARCHIVE.", archiveKey);
+		CreateSearchableCoffin(room, new Vector3(5f, floor, 23.5f), "Cassius Morvayne's coffin",
+			"Bones, at last. The teeth are filed to points.");
+		CreatePlacard(room, new Vector3(-3.4f, floor, 21f), 90f,
+			"Exhibit VI - The Morvayne Register",
+			"The family's own record of its dead, open at the last page.\n\n" +
+			"Cassius Morvayne. Interred.\nAurelian Morvayne. Interred.\nIsolde Morvayne. Interred.\n\n" +
+			"Elias Morvayne. The name is struck through in red ink, and beside it, in the same hand:\n" +
+			"\"Traitor to the blood. He kept company with hunters. No Morvayne shall visit him.\"");
 
 		// the curator's desk and journal, by the door
 		GameObject desk = PlaceProp(room, Dungeon + "Misc/Furniture/NGF_Table_01.prefab", new Vector3(4.6f, floor, 15.6f), 0f, 0.85f);
@@ -584,6 +598,75 @@ public static class MuseumBuilder
 
 		PlacePickup(room, PrototypeArenaBuilder.AmmoPickupPrefabPath, new Vector3(-4.8f, floor, 15.5f));
 		PlacePickup(room, PrototypeArenaBuilder.HealthPickupPrefabPath, new Vector3(-4.8f, floor, 21f));
+	}
+
+	// 12 x 12 m behind the wing, z 26.5 .. 38.5. The curator's records: the acquisitions ledger that gives the game away (the exhibits are alive), the museum's charter hinting at
+	// what's below, and the Countess's empty portrait on the far wall. The open floor is the boss arena
+	private static void BuildArchive(Transform root)
+	{
+		Transform room = Group(root, "Archive");
+		const float floor = DaisHeight, top = DaisHeight + WingHeight;
+
+		CreateBox(room, "Floor", new Vector3(0f, floor - 0.25f, 32.625f), new Vector3(13f, 0.5f, 12.75f), _wood, 2f);
+		CreateBox(room, "Ceiling", new Vector3(0f, top + 0.25f, 32.625f), new Vector3(13f, 0.5f, 12.75f), _wood, 2f);
+		CreateBox(room, "Wall_W", new Vector3(-6.25f, floor + WingHeight * 0.5f, 32.625f), new Vector3(Wall, WingHeight, 12.75f), _stone, 2f);
+		CreateBox(room, "Wall_E", new Vector3(6.25f, floor + WingHeight * 0.5f, 32.625f), new Vector3(Wall, WingHeight, 12.75f), _stone, 2f);
+		CreateBox(room, "Wall_N", new Vector3(0f, floor + WingHeight * 0.5f, 38.75f), new Vector3(13f, WingHeight, Wall), _stone, 2f);
+		CreateBox(room, "Carpet", new Vector3(0f, floor + 0.01f, 32.5f), new Vector3(3f, 0.02f, 8f), _fabric, 1f, false);
+
+		// the reading table and the acquisitions ledger, just inside the door
+		GameObject table = PlaceProp(room, Dungeon + "Misc/Furniture/NGF_Table_02.prefab", new Vector3(-3f, floor, 29.5f), 90f, 0.85f);
+		float tableTop = table != null ? WorldBounds(table).max.y : floor + 0.85f;
+		GameObject ledger = PlaceProp(room, Dungeon + "Misc/Item/Books/NGF_Book_open_01.prefab", new Vector3(-3f, tableTop, 29.5f), 160f, 0f, false);
+		PlaceProp(room, Dungeon + "Misc/Item/Books/NGF_Book_03.prefab", new Vector3(-3.1f, tableTop, 30.3f), 75f, 0f, false);
+		PlaceProp(room, Dungeon + "Misc/Item/Books/NGF_Book_small_02.prefab", new Vector3(-2.9f, tableTop, 28.8f), 20f, 0f, false);
+		PlaceProp(room, Dungeon + "Misc/Item/NGF_Inkstand_01.prefab", new Vector3(-3.3f, tableTop, 29.0f), 0f, 0f, false);
+		GameObject tableCandle = PlaceProp(room, Dungeon + "Misc/Light/NGF_Light_Candle_middle_02.prefab", new Vector3(-2.7f, tableTop, 30.1f), 0f, 0f, false);
+		AddCandleLight(room, tableCandle, 1.4f, 5f);
+		AddSound(room, "CandleCrackle", new Vector3(-2.7f, tableTop + 0.2f, 30.1f), FireClip, 0.3f, 1f, 6f, true);
+		AddReadable(room, "Ledger", new Vector3(-3f, tableTop + 0.1f, 29.5f), new Vector3(0.7f, 0.3f, 0.6f), ledger,
+			"Acquisitions ledger, 1803 - present",
+			"Lot 1. Thralls, gallery stock. Live. Kept sedated on laudanum and lamb's blood. Restock as required.\n\n" +
+			"Lot 5. The founder. CONTAINED. On no account to be opened, fed or spoken to.\n\n" +
+			"Lot 9. Portrait of the Countess Morvayne. Live. Feed monthly. Keep the frame locked.\n\n" +
+			"Lot 14. Valley stock, eleven, received this spring. Live. Transferred to gallery stock.\n\n" +
+			"Beneath the last entry, in the curator's hand: \"Every piece is authentic. I never once lied to them.\"",
+			"Read ledger");
+
+		CreatePlacard(room, new Vector3(3f, floor, 29f), 180f,
+			"Exhibit VII - The Museum Charter",
+			"By deed of the Morvayne family, 1803.\n\n" +
+			"The family shall provide the collection. The Curator shall keep it, and keep it fed.\n\n" +
+			"The collection shall never leave the house. Neither shall the family.\n\n" +
+			"Nothing is to be taken below the house, and nothing below the house is to be\n\n" +
+			"The rest of the page has been torn away.");
+
+		// the Countess's portrait on the far wall, framed by candle stands. She isn't in it
+		PlaceOnWall(room, Frames + "SM_frame_01.prefab", new Vector3(0f, floor + 2.4f, 38.5f), Vector3.back, 2.6f);
+		foreach (float x in new[] { -2.2f, 2.2f })
+		{
+			GameObject stand = PlaceProp(room, Pegasus + "Candle Stand.prefab", new Vector3(x, floor, 37.8f), 0f, 1.8f);
+			AddCandleLight(room, stand, 1.6f, 6f);
+		}
+		CreatePlacard(room, new Vector3(0f, floor, 36.6f), 180f,
+			"Exhibit IX - The Countess Morvayne",
+			"Oil on canvas, 1760. The sitter was celebrated for her beauty and her appetite.\n\n" +
+			"The canvas is bare. Four long scratches run across the frame, from the inside out.");
+
+		GameObject hangingLamp = PlaceHanging(room, Dungeon + "Misc/Light/NGF_Light_Hanging_lamp.prefab", new Vector3(0f, top, 32.5f), 0f, 1.2f);
+		if (hangingLamp != null)
+		{
+			Bounds lampBounds = WorldBounds(hangingLamp);
+			AddPointLight(room, "HangingLampLight", new Vector3(0f, lampBounds.min.y + 0.15f, 32.5f), CandleColor, 4f, 9f, false, true);
+		}
+
+		PlaceHanging(room, Cobwebs + "SM_Cobwebs_04.prefab", new Vector3(-5.6f, top, 38f), 0f, 1.2f);
+		PlaceHanging(room, Cobwebs + "SM_Cobwebs_06.prefab", new Vector3(5.6f, top, 38f), 90f, 1.2f);
+		PlaceHanging(room, Cobwebs + "SM_Cobwebs_08.prefab", new Vector3(-5.6f, top, 27f), 270f, 1.2f);
+
+		// supplies before whatever comes out of that frame
+		PlacePickup(room, PrototypeArenaBuilder.AmmoPickupPrefabPath, new Vector3(4.6f, floor, 27.5f));
+		PlacePickup(room, PrototypeArenaBuilder.HealthPickupPrefabPath, new Vector3(-4.6f, floor, 27.5f));
 	}
 
 	// ---------------------------------------------------------------- interactive pieces
@@ -760,7 +843,28 @@ public static class MuseumBuilder
 		return root;
 	}
 
-	private static void CreateEncounter(Transform parent, string name, Vector3 centre, Vector3 size, GameObject enemyPrefab,
+	// a wooden coffin against a side wall that the player can search once. With a `key`, its pickup appears on
+	// the lid; with an `ambush`, searching starts that encounter
+	private static void CreateSearchableCoffin(Transform parent, Vector3 floor, string displayName, string foundMessage,
+		KeyData key = null, Encounter ambush = null)
+	{
+		GameObject coffin = PlaceProp(parent, Coffins + "Coffins/Coffin_Wood_B_1.prefab", floor, 0f, 0.7f, true, 2.2f);
+		if (coffin == null) return;
+		coffin.name = "Coffin_" + displayName.Split(' ')[0];
+
+		var searchable = coffin.AddComponent<Searchable>();
+		searchable.DisplayName = displayName;
+		searchable.FoundMessage = foundMessage;
+		searchable.SearchClip = PrototypeArenaBuilder.LoadClip(DoorOpenClip);
+		searchable.Ambush = ambush;
+		if (key != null)
+		{
+			Bounds bounds = WorldBounds(coffin);
+			searchable.Reveal = CreateKeyPickup(parent, key, new Vector3(bounds.center.x, bounds.max.y - 0.3f, bounds.center.z));
+		}
+	}
+
+	private static Encounter CreateEncounter(Transform parent, string name, Vector3 centre, Vector3 size, GameObject enemyPrefab,
 		Vector3[] spawnPositions, Door barDoor, string startMessage, string clearedMessage, GameObject reward, AudioSource[] startSounds = null)
 	{
 		var go = new GameObject(name);
@@ -794,6 +898,7 @@ public static class MuseumBuilder
 		encounter.ClearedMessage = clearedMessage;
 		encounter.Reward = reward;
 		encounter.StartSounds = startSounds ?? new AudioSource[0];
+		return encounter;
 	}
 
 	private static void PlacePickup(Transform parent, string prefabPath, Vector3 position)

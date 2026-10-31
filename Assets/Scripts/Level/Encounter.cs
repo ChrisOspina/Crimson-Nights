@@ -45,10 +45,18 @@ public class Encounter : MonoBehaviour
 
 	private void OnTriggerEnter(Collider other)
 	{
-		if (Started || !other.CompareTag("Player")) return;
+		if (!other.CompareTag("Player")) return;
+		Begin(other.GetComponent<PlayerInteractor>());
+	}
+
+	// starts the fight; called by the trigger, or by a script for an encounter whose trigger is disabled
+	// (a coffin ambush)
+	public void Begin(PlayerInteractor player)
+	{
+		if (Started) return;
 		Started = true;
 		GetComponent<Collider>().enabled = false;
-		_player = other.GetComponent<PlayerInteractor>();
+		_player = player;
 
 		foreach (Door door in BarDoors)
 		{
