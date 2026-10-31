@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: d0b73fb5c2b83fa42beb1d7ade0798f2
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 395416
+  packageName: Vampire Character
+  packageVersion: 1.0
+  assetPath: Assets/Lil Pupinduy/Character/Vampire Character/Shaders/Cloth Shader
+    Graph.shadergraph
+  uploadId: 961656
