@@ -68,7 +68,19 @@ public class EnemyData : ScriptableObject
 	[Tooltip("Played when an attack lands on the player")]
 	public AudioClip AttackHitClip;
 
+	[Header("Effects (optional)")]
+	[Tooltip("Sprayed from where a hit lands, along the hit")]
+	public GameObject HitFX;
+	[Tooltip("Burst from the body when it dies")]
+	public GameObject DeathFX;
+	[Tooltip("Sprayed in front of the player's camera when an attack lands on them")]
+	public GameObject BiteFX;
+
 	[Header("Look")]
+	[Tooltip("Colour property the telegraph and hit flash drive: _BaseColor on URP/Lit, _FresnelColor (a rim glow) on the vampire model's shaders")]
+	public string TintProperty = "_BaseColor";
 	public Color BodyColor = new Color(0.45f, 0.05f, 0.08f);
 	public Color HitFlashColor = Color.white;
+	[Tooltip("Seconds the body stays down after dying (for the death animation) before it shrinks away")]
+	public float CorpseTime = 0f;
 }

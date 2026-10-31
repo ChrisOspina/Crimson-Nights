@@ -1,6 +1,7 @@
 using Unity.AI.Navigation;
 using Unity.Cinemachine;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.AI;
@@ -42,6 +43,25 @@ public static class PrototypeArenaBuilder
 	// variants, to match the health bar. Without them the pickups stay glowing spheres
 	private const string HealthJarModelPath = "Assets/ThirdParty/Pickups/First aid jar/Prefabs/Firstaid_2.prefab";
 	private const string HealthKitModelPath = "Assets/ThirdParty/Pickups/GeeKay3D/First-Aid-Set/Assets/Prefabs/FirstAidKit_Red.prefab";
+	// the thrall model and its clips (Lil Pupinduy vampire pack, URP shader graphs, Generic rig). Without it
+	// the thrall stays a cube
+	private const string VampireFolder = "Assets/ThirdParty/Character/Lil Pupinduy/Character/Vampire Character/";
+	private const string ThrallModelPath = VampireFolder + "Prefabs/Vampire.prefab";
+	private const string VampireClipPath = VampireFolder + "Animations/Anim_Vampire_";
+	internal const string VampireControllerPath = "Assets/Animations/Enemies/Vampire.controller";
+	private const float ThrallHeight = 1.85f;
+	// the base Vampire materials are blue-skinned; thralls get their own copies of the red-eyed "2" set (tweak
+	// the hue on the copies, not the pack)
+	private const string ThrallSkinSourcePath = VampireFolder + "Materials/M_Vampire Material 2.mat";
+	private const string ThrallClothSourcePath = VampireFolder + "Materials/M_Cloth Material 2.mat";
+	private const string ThrallSkinPath = "Assets/Materials/Enemies/Thrall_Skin.mat";
+	private const string ThrallClothPath = "Assets/Materials/Enemies/Thrall_Cloth.mat";
+	// blood particle effects, made once and reused so Inspector tweaks stick
+	private const string BloodHitPath = "Assets/Prefabs/FX/Blood_Hit.prefab";
+	private const string BloodDeathPath = "Assets/Prefabs/FX/Blood_Death.prefab";
+	private const string BloodBitePath = "Assets/Prefabs/FX/Blood_Bite.prefab";
+	// turn the model if it ends up facing away from where it walks
+	private const float VampireModelYaw = 0f;
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	internal const string AudioFolder = "Assets/Audio";
 	private const string PickupClipName = "Magic Spell_Coins_2.wav";
@@ -109,6 +129,19 @@ public static class PrototypeArenaBuilder
 
 		EnemyData enemyData = GetOrCreateAsset<EnemyData>(EnemyDataPath, out _);
 		if (enemyData.AttackHitClip == null) enemyData.AttackHitClip = LoadClip("Monster Bite.wav");
+		Material bloodMat = GetOrCreateBloodMaterial();
+		if (enemyData.HitFX == null)
+		{
+			enemyData.HitFX = GetOrCreateBloodPrefab(BloodHitPath, bloodMat, 24, 20f, new Vector2(2f, 5f), new Vector2(0.03f, 0.08f), new Vector2(0.5f, 1f), true);
+		}
+		if (enemyData.DeathFX == null)
+		{
+			enemyData.DeathFX = GetOrCreateBloodPrefab(BloodDeathPath, bloodMat, 70, 55f, new Vector2(2f, 6f), new Vector2(0.04f, 0.11f), new Vector2(1f, 1.8f), true);
+		}
+		if (enemyData.BiteFX == null)
+		{
+			enemyData.BiteFX = GetOrCreateBloodPrefab(BloodBitePath, bloodMat, 45, 50f, new Vector2(1.5f, 4f), new Vector2(0.05f, 0.14f), new Vector2(0.35f, 0.7f), false);
+		}
 		EditorUtility.SetDirty(enemyData);
 
 		RoundModel revolverRound = LoadRoundModel(RevolverRoundModelPath);
@@ -117,6 +150,7 @@ public static class PrototypeArenaBuilder
 		SetupRounds(shotgunData, shotgunShell, ShotgunCasingPrefabPath, ShotgunRoundIconPath, 0.075f);
 
 		GameObject enemyPrefab = GetOrCreateEnemyPrefab(enemyData, enemyMat);
+		SetupEnemyModel(enemyData);
 		Color healthColor = new Color(0.9f, 0.1f, 0.15f);
 		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, 20f, healthColor, fxMat, PickupClipName);
 		Pickup healthKitPickup = GetOrCreatePickupPrefab(HealthKitPickupPrefabPath, Pickup.Kind.Health, 60, 45f, healthColor, fxMat, PickupClipName);
@@ -238,6 +272,308 @@ public static class PrototypeArenaBuilder
 		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefabPath);
 		Object.DestroyImmediate(root);
 		return prefab;
+	}
+
+	// Swaps the thrall's cube (or an earlier model) for the vampire model, driven by EnemyAnimator. The
+	// telegraph and hit flash move to the model's rim glow, since its shaders have no _BaseColor
+	private static void SetupEnemyModel(EnemyData data)
+	{
+		var source = AssetDatabase.LoadAssetAtPath<GameObject>(ThrallModelPath);
+		AnimatorController controller = GetOrCreateVampireController();
+		if (source == null || controller == null)
+		{
+			Debug.LogWarning("[PrototypeArenaBuilder] Vampire model or clips not found under " + VampireFolder + ", the thrall stays a cube.");
+			return;
+		}
+
+		GameObject root = PrefabUtility.LoadPrefabContents(EnemyPrefabPath);
+		try
+		{
+			foreach (string oldName in new[] { "Body", "Model" })
+			{
+				Transform old = root.transform.Find(oldName);
+				if (old != null) Object.DestroyImmediate(old.gameObject);
+			}
+
+			// a plain copy rather than a prefab instance, so the builder owns it
+			GameObject model = Object.Instantiate(source, root.transform);
+			model.name = "Model";
+			model.transform.localPosition = Vector3.zero;
+			model.transform.localRotation = Quaternion.Euler(0f, VampireModelYaw, 0f) * source.transform.localRotation;
+			model.transform.localScale = source.transform.localScale;
+			foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
+			foreach (Rigidbody body in model.GetComponentsInChildren<Rigidbody>(true)) Object.DestroyImmediate(body);
+			foreach (Transform t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = EnemyLayer;
+			SetModelMaterials(model, GetOrCreateMaterialCopy(ThrallSkinSourcePath, ThrallSkinPath),
+				GetOrCreateMaterialCopy(ThrallClothSourcePath, ThrallClothPath));
+
+			// scaled to the thrall's height, standing on the root and centred over it
+			Bounds bounds = ModelBounds(model, root.transform);
+			float scale = bounds.size.y > 0f ? ThrallHeight / bounds.size.y : 1f;
+			model.transform.localScale *= scale;
+			model.transform.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z) * scale;
+
+			Animator animator = model.GetComponentInChildren<Animator>();
+			if (animator == null) animator = model.AddComponent<Animator>();
+			animator.runtimeAnimatorController = controller;
+			animator.applyRootMotion = false;
+
+			// the cube's box collider went with it; weapons need something to hit
+			var capsule = root.GetComponent<CapsuleCollider>();
+			if (capsule == null) capsule = root.AddComponent<CapsuleCollider>();
+			capsule.center = new Vector3(0f, ThrallHeight * 0.5f, 0f);
+			capsule.height = ThrallHeight;
+			capsule.radius = 0.4f;
+
+			var enemy = root.GetComponent<EnemyController>();
+			enemy.Body = null;
+			enemy.Visual = model.transform;
+			var enemyAnimator = root.GetComponent<EnemyAnimator>();
+			if (enemyAnimator == null) enemyAnimator = root.AddComponent<EnemyAnimator>();
+			enemyAnimator.Animator = animator;
+			root.GetComponent<NavMeshAgent>().height = ThrallHeight;
+
+			PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefabPath);
+		}
+		finally
+		{
+			PrefabUtility.UnloadPrefabContents(root);
+		}
+
+		// first switch from the cube: tint the rim, keep the body a while for the death animation. Later
+		// runs leave the asset alone so Inspector tweaks stick
+		if (data.TintProperty != "_FresnelColor")
+		{
+			data.TintProperty = "_FresnelColor";
+			data.BodyColor = new Color(0.35f, 0.02f, 0.03f);
+			data.CorpseTime = 2.5f;
+			EditorUtility.SetDirty(data);
+		}
+	}
+
+	// gives a vampire model its own skin and cloth materials (the pack's cloth materials have "Cloth" in their
+	// names); a null material leaves those slots alone
+	private static void SetModelMaterials(GameObject model, Material skin, Material cloth)
+	{
+		foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+		{
+			Material[] materials = renderer.sharedMaterials;
+			for (int i = 0; i < materials.Length; i++)
+			{
+				if (materials[i] == null) continue;
+				Material replacement = materials[i].name.Contains("Cloth") ? cloth : skin;
+				if (replacement != null) materials[i] = replacement;
+			}
+			renderer.sharedMaterials = materials;
+		}
+	}
+
+	// a project-owned copy of a pack material, made once so its Inspector tweaks stick
+	private static Material GetOrCreateMaterialCopy(string sourcePath, string path)
+	{
+		var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+		if (existing != null) return existing;
+		if (AssetDatabase.LoadAssetAtPath<Material>(sourcePath) == null) return null;
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+		AssetDatabase.CopyAsset(sourcePath, path);
+		return AssetDatabase.LoadAssetAtPath<Material>(path);
+	}
+
+	// round droplets cut out of the default particle texture: opaque, so they sort simply, and unlit, so they
+	// read as blood even in the dark rooms. Colour comes from each particle
+	private static Material GetOrCreateBloodMaterial()
+	{
+		string path = $"{MaterialFolder}/FX_Blood.mat";
+		var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+		if (existing != null) return existing;
+
+		EnsureFolder(MaterialFolder);
+		var material = new Material(Shader.Find(FxShader));
+		var dot = AssetDatabase.GetBuiltinExtraResource<Texture2D>("Default-Particle.psd");
+		if (dot != null) material.SetTexture("_BaseMap", dot);
+		material.SetColor("_BaseColor", Color.white);
+		material.SetFloat("_AlphaClip", 1f);
+		material.SetFloat("_Cutoff", 0.4f);
+		material.EnableKeyword("_ALPHATEST_ON");
+		material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+		AssetDatabase.CreateAsset(material, path);
+		return material;
+	}
+
+	// A one-shot burst of dark red droplets thrown along +Z in a cone, falling under gravity. With `collide`
+	// they land on the floor and stay there until they fade. Destroys itself when done
+	private static GameObject GetOrCreateBloodPrefab(string path, Material material, int count, float coneAngle,
+		Vector2 speed, Vector2 size, Vector2 lifetime, bool collide)
+	{
+		var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+		if (existing != null) return existing;
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+		var root = new GameObject(System.IO.Path.GetFileNameWithoutExtension(path));
+		var particles = root.AddComponent<ParticleSystem>();
+		particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+		ParticleSystem.MainModule main = particles.main;
+		main.duration = 1f;
+		main.loop = false;
+		main.playOnAwake = true;
+		main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime.x, lifetime.y);
+		main.startSpeed = new ParticleSystem.MinMaxCurve(speed.x, speed.y);
+		main.startSize = new ParticleSystem.MinMaxCurve(size.x, size.y);
+		main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.3f, 0f, 0.01f), new Color(0.65f, 0.02f, 0.03f));
+		main.gravityModifier = 1.6f;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.stopAction = ParticleSystemStopAction.Destroy;
+		main.maxParticles = count * 2;
+
+		ParticleSystem.EmissionModule emission = particles.emission;
+		emission.rateOverTime = 0f;
+		emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+
+		ParticleSystem.ShapeModule shape = particles.shape;
+		shape.shapeType = ParticleSystemShapeType.Cone;
+		shape.angle = coneAngle;
+		shape.radius = 0.05f;
+
+		ParticleSystem.SizeOverLifetimeModule shrink = particles.sizeOverLifetime;
+		shrink.enabled = true;
+		shrink.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.4f));
+
+		if (collide)
+		{
+			ParticleSystem.CollisionModule collision = particles.collision;
+			collision.enabled = true;
+			collision.type = ParticleSystemCollisionType.World;
+			collision.mode = ParticleSystemCollisionMode.Collision3D;
+			collision.collidesWith = 1 << 0;
+			collision.dampen = 1f;
+			collision.bounce = 0f;
+			collision.lifetimeLoss = 0f;
+			collision.radiusScale = 0.5f;
+			collision.quality = ParticleSystemCollisionQuality.Medium;
+		}
+
+		var renderer = root.GetComponent<ParticleSystemRenderer>();
+		renderer.sharedMaterial = material;
+		renderer.renderMode = ParticleSystemRenderMode.Billboard;
+		renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+		renderer.receiveShadows = false;
+
+		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+		Object.DestroyImmediate(root);
+		return prefab;
+	}
+
+	// the mesh bounds of a model's active renderers (skinned ones in their bind pose), in `space`
+	private static Bounds ModelBounds(GameObject model, Transform space)
+	{
+		Bounds bounds = new Bounds();
+		bool first = true;
+		foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>())
+		{
+			Mesh mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh
+				: renderer.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
+			if (mesh == null) continue;
+			Bounds meshBounds = mesh.bounds;
+			for (int i = 0; i < 8; i++)
+			{
+				Vector3 corner = meshBounds.center + Vector3.Scale(meshBounds.extents,
+					new Vector3((i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f));
+				Vector3 point = space.InverseTransformPoint(renderer.transform.TransformPoint(corner));
+				if (first) bounds = new Bounds(point, Vector3.zero);
+				else bounds.Encapsulate(point);
+				first = false;
+			}
+		}
+		return bounds;
+	}
+
+	// The states EnemyAnimator plays: Locomotion (idle/walk/run on Speed), the attacks (speed from
+	// AttackSpeed), Hit and Death, plus Agr (a roar) and WakeUp for the Countess. Made once and reused, so
+	// Animator window tweaks stick; delete it to remake it
+	private static AnimatorController GetOrCreateVampireController()
+	{
+		var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(VampireControllerPath);
+		if (existing != null) return existing;
+
+		foreach (string loop in new[] { "Idle", "Walk", "Run" }) SetClipLooping(VampireClipPath + loop + ".fbx");
+		AnimationClip idle = LoadVampireClip("Idle"), walk = LoadVampireClip("Walk"), run = LoadVampireClip("Run");
+		AnimationClip attackL = LoadVampireClip("Attack_L"), attackR = LoadVampireClip("Attack_R"), attackLR = LoadVampireClip("Attack_LR");
+		AnimationClip hit = LoadVampireClip("Hit"), death = LoadVampireClip("Death");
+		AnimationClip roar = LoadVampireClip("Agr"), wake = LoadVampireClip("Waking up");
+		if (idle == null || run == null || attackL == null || hit == null || death == null) return null;
+
+		EnsureFolder(System.IO.Path.GetDirectoryName(VampireControllerPath).Replace('\\', '/'));
+		AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(VampireControllerPath);
+		controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
+		controller.AddParameter(new AnimatorControllerParameter { name = "AttackSpeed", type = AnimatorControllerParameterType.Float, defaultFloat = 1f });
+
+		AnimatorStateMachine machine = controller.layers[0].stateMachine;
+		AnimatorState locomotion = controller.CreateBlendTreeInController("Locomotion", out BlendTree tree, 0);
+		tree.blendType = BlendTreeType.Simple1D;
+		tree.blendParameter = "Speed";
+		tree.useAutomaticThresholds = false;
+		tree.AddChild(idle, 0f);
+		if (walk != null) tree.AddChild(walk, 1.5f);
+		tree.AddChild(run, 4.5f);
+		machine.defaultState = locomotion;
+
+		AddOneShotState(machine, locomotion, "Attack_L", attackL, true, true);
+		AddOneShotState(machine, locomotion, "Attack_R", attackR != null ? attackR : attackL, true, true);
+		AddOneShotState(machine, locomotion, "Attack_LR", attackLR != null ? attackLR : attackL, true, true);
+		AddOneShotState(machine, locomotion, "Hit", hit, false, true);
+		AddOneShotState(machine, locomotion, "Death", death, false, false);
+		if (roar != null) AddOneShotState(machine, locomotion, "Agr", roar, false, true);
+		if (wake != null) AddOneShotState(machine, locomotion, "WakeUp", wake, false, true);
+
+		AssetDatabase.SaveAssets();
+		return controller;
+	}
+
+	// a state that plays its clip once and, if `returns`, blends back to locomotion as it ends
+	private static void AddOneShotState(AnimatorStateMachine machine, AnimatorState locomotion, string name, AnimationClip clip, bool attackSpeed, bool returns)
+	{
+		AnimatorState state = machine.AddState(name);
+		state.motion = clip;
+		if (attackSpeed)
+		{
+			state.speedParameterActive = true;
+			state.speedParameter = "AttackSpeed";
+		}
+		if (!returns) return;
+		AnimatorStateTransition back = state.AddTransition(locomotion);
+		back.hasExitTime = true;
+		back.exitTime = 0.92f;
+		back.duration = 0.15f;
+	}
+
+	private static AnimationClip LoadVampireClip(string name)
+	{
+		foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(VampireClipPath + name + ".fbx"))
+		{
+			if (asset is AnimationClip clip && !clip.name.StartsWith("__preview__")) return clip;
+		}
+		Debug.LogWarning("[PrototypeArenaBuilder] Vampire clip not found: " + VampireClipPath + name + ".fbx");
+		return null;
+	}
+
+	// the pack's Walk clip is imported without looping
+	private static void SetClipLooping(string path)
+	{
+		if (!(AssetImporter.GetAtPath(path) is ModelImporter importer)) return;
+		ModelImporterClipAnimation[] clips = importer.clipAnimations;
+		if (clips.Length == 0) clips = importer.defaultClipAnimations;
+		bool changed = false;
+		foreach (ModelImporterClipAnimation clip in clips)
+		{
+			if (clip.loopTime) continue;
+			clip.loopTime = true;
+			changed = true;
+		}
+		if (!changed) return;
+		importer.clipAnimations = clips;
+		importer.SaveAndReimport();
 	}
 
 	private static Pickup GetOrCreatePickupPrefab(string path, Pickup.Kind kind, int amount, float respawnTime, Color color, Material material, string clipName)

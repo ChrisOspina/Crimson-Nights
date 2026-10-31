@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: d84d99ec6d6029d42a51deffadd67120
+AssetOrigin:
+  serializedVersion: 1
+  productId: 395416
+  packageName: Vampire Character
+  packageVersion: 1.0
+  assetPath: Assets/Lil Pupinduy/Character/Vampire Character/Animations/Anim_Vampire_Walk.fbx
+  uploadId: 961656
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
@@ -42,7 +49,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 1
       loopBlendPositionY: 1
@@ -85,6 +92,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -122,8 +132,7 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 0
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 26f4468bb83c7ac46ae8d85e15989714,
-    type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 26f4468bb83c7ac46ae8d85e15989714, type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
@@ -135,10 +144,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 395416
-  packageName: Vampire Character
-  packageVersion: 1.0
-  assetPath: Assets/Lil Pupinduy/Character/Vampire Character/Animations/Anim_Vampire_Walk.fbx
-  uploadId: 961656

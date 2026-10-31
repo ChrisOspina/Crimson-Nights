@@ -13,12 +13,17 @@ public class EnemyController : MonoBehaviour
 	public enum State { Idle, Chase, WindUp, Lunge, Recover, Stagger, Dead }
 
 	public EnemyData Data;
-	[Tooltip("Visual child that gets tinted and scaled")]
+	[Tooltip("Visual child that gets tinted and scaled (the prototype cube)")]
 	public Renderer Body;
+	[Tooltip("Model root that gets scaled; every renderer under it is tinted. Overrides Body")]
+	public Transform Visual;
 
 	public State CurrentState { get; private set; } = State.Idle;
+	// the attack being wound up or performed (compare with Data.Strike / Data.Lunge)
+	public EnemyData.Attack CurrentAttack => _attack;
 
-	private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+	private int _tintId;
+	private Renderer[] _renderers = new Renderer[0];
 
 	private NavMeshAgent _agent;
 	private Health _health;
@@ -30,7 +35,7 @@ public class EnemyController : MonoBehaviour
 	private float _repathTimer;
 	private float _hitFlashTimer;
 	private Vector3 _knockback;
-	private Vector3 _bodyRestScale;
+	private Vector3 _visualRestScale;
 	private MaterialPropertyBlock _block;
 
 	// the attack being wound up or performed
@@ -51,7 +56,13 @@ public class EnemyController : MonoBehaviour
 		_agent.stoppingDistance = Data.Strike.MaxRange * 0.8f;
 		_attack = Data.Strike;
 
-		if (Body != null) _bodyRestScale = Body.transform.localScale;
+		if (Visual == null && Body != null) Visual = Body.transform;
+		if (Visual != null)
+		{
+			_visualRestScale = Visual.localScale;
+			_renderers = Visual.GetComponentsInChildren<Renderer>(true);
+		}
+		_tintId = Shader.PropertyToID(string.IsNullOrEmpty(Data.TintProperty) ? "_BaseColor" : Data.TintProperty);
 	}
 
 	private void OnEnable()
@@ -237,6 +248,10 @@ public class EnemyController : MonoBehaviour
 		if (_playerHealth.Current >= before) return false;
 
 		if (Data.AttackHitClip != null) AudioSource.PlayClipAtPoint(Data.AttackHitClip, transform.position);
+		// the bite sprays just in front of the camera, between it and the enemy, so the player sees it
+		Camera view = Camera.main;
+		Vector3 eye = view != null ? view.transform.position : _player.position + Vector3.up * 1.5f;
+		FX.Spawn(Data.BiteFX, eye - direction * 0.6f + Vector3.down * 0.15f, direction);
 		return true;
 	}
 
@@ -254,6 +269,7 @@ public class EnemyController : MonoBehaviour
 	private void OnDamaged(DamageInfo info)
 	{
 		_hitFlashTimer = 0.08f;
+		FX.Spawn(Data.HitFX, info.Point, info.Direction);
 
 		// during a wind-up or lunge only a strong enough hit interrupts; the hit still does damage either way
 		bool attacking = CurrentState == State.WindUp || CurrentState == State.Lunge;
@@ -273,16 +289,24 @@ public class EnemyController : MonoBehaviour
 		if (_agent.isOnNavMesh) _agent.isStopped = true;
 		_agent.enabled = false;
 		foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
+		FX.Spawn(Data.DeathFX, transform.position + Vector3.up * 1.2f, Vector3.up);
 		StartCoroutine(DeathRoutine());
 	}
 
 	private IEnumerator DeathRoutine()
 	{
 		SetColor(Data.HitFlashColor);
-		Vector3 start = Body != null ? Body.transform.localScale : Vector3.one;
+		if (Data.CorpseTime > 0f)
+		{
+			// a model plays its death animation (EnemyAnimator) and lies there for a while first
+			yield return new WaitForSeconds(0.1f);
+			SetColor(Data.BodyColor);
+			yield return new WaitForSeconds(Data.CorpseTime);
+		}
+		Vector3 start = Visual != null ? Visual.localScale : Vector3.one;
 		for (float t = 0f; t < 0.3f; t += Time.deltaTime)
 		{
-			if (Body != null) Body.transform.localScale = Vector3.Lerp(start, Vector3.zero, t / 0.3f);
+			if (Visual != null) Visual.localScale = Vector3.Lerp(start, Vector3.zero, t / 0.3f);
 			yield return null;
 		}
 		Destroy(gameObject);
@@ -326,7 +350,7 @@ public class EnemyController : MonoBehaviour
 		}
 
 		SetColor(color);
-		if (Body != null) Body.transform.localScale = _bodyRestScale * scale;
+		if (Visual != null) Visual.localScale = _visualRestScale * scale;
 	}
 
 	private void FacePlayer(float speed)
@@ -351,10 +375,12 @@ public class EnemyController : MonoBehaviour
 
 	private void SetColor(Color color)
 	{
-		if (Body == null) return;
-		Body.GetPropertyBlock(_block);
-		_block.SetColor(BaseColorId, color);
-		Body.SetPropertyBlock(_block);
+		foreach (Renderer body in _renderers)
+		{
+			body.GetPropertyBlock(_block);
+			_block.SetColor(_tintId, color);
+			body.SetPropertyBlock(_block);
+		}
 	}
 
 	private void OnDrawGizmosSelected()
