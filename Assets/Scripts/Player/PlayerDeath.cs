@@ -6,11 +6,13 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 #endif
 
-// On death: freeze the player, show "YOU DIED", then reload the scene.
+// On death: freeze the player, scream, show "YOU DIED", then reload the scene.
 [RequireComponent(typeof(Health))]
 public class PlayerDeath : MonoBehaviour
 {
 	public float ReloadDelay = 2f;
+	[Tooltip("Played once, in 2D, as the player dies. Keep it shorter than ReloadDelay or the reload cuts it off")]
+	public AudioClip DeathClip;
 
 	private Health _health;
 
@@ -35,6 +37,13 @@ public class PlayerDeath : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
 		SetEnabled<PlayerInput>(false);
 #endif
+
+		if (DeathClip != null)
+		{
+			var source = gameObject.AddComponent<AudioSource>();
+			source.spatialBlend = 0f;
+			source.PlayOneShot(DeathClip);
+		}
 
 		PlayerHUD hud = GetComponent<PlayerHUD>();
 		if (hud != null) hud.ShowDeath();

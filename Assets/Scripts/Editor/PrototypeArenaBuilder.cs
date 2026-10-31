@@ -64,7 +64,9 @@ public static class PrototypeArenaBuilder
 	private const float VampireModelYaw = 0f;
 	private const string MaterialFolder = "Assets/Materials/Proto";
 	internal const string AudioFolder = "Assets/Audio";
-	private const string PickupClipName = "Magic Spell_Coins_2.wav";
+	// health is drunk (blood, presumably); the scream plays as the player dies
+	private const string PickupClipName = "freesound_community-drinking-coffe-107121.mp3";
+	private const string PlayerDeathClipName = "tithuh-blood-the-screaming-545569.mp3";
 	private const string AmmoPickupClipName = "freesound_community-revolver-cocking-104722.mp3";
 
 	private const string ArenaRootName = "PrototypeArena";
@@ -669,7 +671,8 @@ public static class PrototypeArenaBuilder
 		try
 		{
 			GetOrAdd<Health>(root).MaxHealth = 100f;
-			GetOrAdd<PlayerDeath>(root);
+			var death = GetOrAdd<PlayerDeath>(root);
+			if (death.DeathClip == null) death.DeathClip = LoadClip(PlayerDeathClipName);
 
 			Transform cameraRoot = root.transform.Find("PlayerCameraRoot");
 
