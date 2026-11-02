@@ -46,9 +46,21 @@ MonoBehaviour:
   BaseStaggerThreshold: 0
   KnockbackScale: 1
   AttackHitClip: {fileID: 8300000, guid: 4ec1edd89ea2e844f86900c51b795c63, type: 3}
+  ShriekClips:
+  - {fileID: 8300000, guid: 4f673aa30e551eb45b946a95678c3c90, type: 3}
+  - {fileID: 8300000, guid: 1a23bd4b88ccde34bb1c91ce688d7737, type: 3}
+  ShriekVolume: 0.8
+  ShriekCooldown: 2.5
   HitFX: {fileID: 8305801160430543568, guid: 37a719214a5ff46469841102ce9ceed4, type: 3}
   DeathFX: {fileID: 6172882073668124284, guid: 57bc7f42c91c47c4e95350effcf2f12f, type: 3}
   BiteFX: {fileID: 7215582669681638169, guid: 10f0f21d323fd604fbed9f7d7a156295, type: 3}
+  AmmoDrop: {fileID: 7806674034560947212, guid: 4f83a2eb1579e834794ac4b81005f0bb, type: 3}
+  HealthDrop: {fileID: 5930282303369295593, guid: 038301627747d6c41a3c8e3cf1cd2e29, type: 3}
+  MajorHealthDrop: {fileID: 1067647218993463061, guid: 300f4a73d965a6447aa14109e49fbbc4, type: 3}
+  DropChance: 1
+  BothChance: 0.2
+  MajorHealthChance: 0.06
+  DropLifetime: 25
   TintProperty: _FresnelColor
   BodyColor: {r: 0.35, g: 0.02, b: 0.03, a: 1}
   HitFlashColor: {r: 1, g: 1, b: 1, a: 1}

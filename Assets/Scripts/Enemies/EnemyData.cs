@@ -67,6 +67,11 @@ public class EnemyData : ScriptableObject
 	[Header("Audio (optional)")]
 	[Tooltip("Played when an attack lands on the player")]
 	public AudioClip AttackHitClip;
+	[Tooltip("One is picked at random when the enemy notices the player and when it winds up a Lunge (an audible tell)")]
+	public AudioClip[] ShriekClips = new AudioClip[0];
+	[Range(0f, 1f)] public float ShriekVolume = 0.8f;
+	[Tooltip("Minimum seconds between this enemy's shrieks")]
+	public float ShriekCooldown = 2.5f;
 
 	[Header("Effects (optional)")]
 	[Tooltip("Sprayed from where a hit lands, along the hit")]
@@ -75,6 +80,19 @@ public class EnemyData : ScriptableObject
 	public GameObject DeathFX;
 	[Tooltip("Sprayed in front of the player's camera when an attack lands on them")]
 	public GameObject BiteFX;
+
+	[Header("Drops (optional)")]
+	[Tooltip("A kill drops ammo or a health pickup (see EnemyLoot), weighted towards what the player is shorter of")]
+	public Pickup AmmoDrop;
+	public Pickup HealthDrop;
+	[Tooltip("Rare big heal that takes the place of a health drop")]
+	public Pickup MajorHealthDrop;
+	[Range(0f, 1f)] public float DropChance = 1f;
+	[Tooltip("Chance a kill drops both ammo and health")]
+	[Range(0f, 1f)] public float BothChance = 0.2f;
+	[Range(0f, 1f)] public float MajorHealthChance = 0.06f;
+	[Tooltip("Seconds before an uncollected drop disappears")]
+	public float DropLifetime = 25f;
 
 	[Header("Look")]
 	[Tooltip("Colour property the telegraph and hit flash drive: _BaseColor on URP/Lit, _FresnelColor (a rim glow) on the vampire model's shaders")]

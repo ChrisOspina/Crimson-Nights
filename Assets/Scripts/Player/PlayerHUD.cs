@@ -15,6 +15,7 @@ public class PlayerHUD : MonoBehaviour
 	[Tooltip("Magazine icons for rounds already fired")]
 	public Color SpentRoundColor = new Color(1f, 1f, 1f, 0.18f);
 	public float RoundIconHeight = 44f;
+	public Color BossHealthColor = new Color(0.55f, 0.02f, 0.06f);
 
 	[Header("Style Meter")]
 	[Tooltip("Rank colour at D, blending towards StyleHighColor at A")]
@@ -58,6 +59,12 @@ public class PlayerHUD : MonoBehaviour
 	private Text _styleCallout;
 	private float _calloutEndTime;
 	private float _rankPunch; // 1 right after a rank change, decays to 0
+
+	private GameObject _bossRoot;
+	private Text _bossName;
+	private RectTransform _bossFill;
+	private RectTransform _bossTrail;
+	private Health _boss;
 
 	private Text _promptText;
 	private Text _messageText;
@@ -135,6 +142,35 @@ public class PlayerHUD : MonoBehaviour
 
 		UpdateStyle();
 		UpdateInteraction();
+		UpdateBoss();
+	}
+
+	// ---------------------------------------------------------------- boss bar
+
+	// a named health bar across the top of the screen, for as long as the boss fight lasts
+	public void ShowBoss(string displayName, Health boss)
+	{
+		_boss = boss;
+		_bossName.text = displayName;
+		_bossFill.anchorMax = new Vector2(boss.Normalized, 1f);
+		_bossTrail.anchorMax = _bossFill.anchorMax;
+		_bossRoot.SetActive(true);
+	}
+
+	public void HideBoss()
+	{
+		_boss = null;
+		_bossRoot.SetActive(false);
+	}
+
+	// the fill snaps to the boss's health; a pale trail behind it drains after, showing the chunk just taken
+	private void UpdateBoss()
+	{
+		if (_boss == null) return;
+		float health = _boss.Normalized;
+		_bossFill.anchorMax = new Vector2(health, 1f);
+		float trail = Mathf.MoveTowards(_bossTrail.anchorMax.x, health, Time.deltaTime * 0.35f);
+		_bossTrail.anchorMax = new Vector2(Mathf.Max(trail, health), 1f);
 	}
 
 	private void UpdateInteraction()
@@ -368,6 +404,7 @@ public class PlayerHUD : MonoBehaviour
 
 		BuildStyleMeter(root, font);
 		BuildInteractionUI(root, font);
+		BuildBossBar(root, font);
 
 		// death message
 		_deathText = CreateText("DeathText", root, font, 96, TextAnchor.MiddleCenter);
@@ -413,6 +450,48 @@ public class PlayerHUD : MonoBehaviour
 	}
 
 	// a row of the reading panel with 50px side margins, its top edge y pixels below the panel's top
+	private void BuildBossBar(RectTransform root, Font font)
+	{
+		_bossRoot = new GameObject("BossBar", typeof(RectTransform));
+		_bossRoot.transform.SetParent(root, false);
+		var rect = _bossRoot.GetComponent<RectTransform>();
+		rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+		rect.pivot = new Vector2(0.5f, 1f);
+		rect.anchoredPosition = new Vector2(0f, -40f);
+		rect.sizeDelta = new Vector2(760f, 64f);
+
+		_bossName = CreateText("Name", rect, font, 26, TextAnchor.LowerCenter);
+		_bossName.fontStyle = FontStyle.Italic;
+		_bossName.color = new Color(0.9f, 0.85f, 0.8f);
+		RectTransform nameRect = _bossName.rectTransform;
+		nameRect.anchorMin = new Vector2(0f, 1f);
+		nameRect.anchorMax = new Vector2(1f, 1f);
+		nameRect.pivot = new Vector2(0.5f, 1f);
+		nameRect.anchoredPosition = Vector2.zero;
+		nameRect.sizeDelta = new Vector2(0f, 34f);
+
+		Image back = CreateImage("Bar", rect, new Color(0f, 0f, 0f, 0.65f));
+		RectTransform backRect = back.rectTransform;
+		backRect.anchorMin = new Vector2(0f, 0f);
+		backRect.anchorMax = new Vector2(1f, 0f);
+		backRect.pivot = new Vector2(0.5f, 0f);
+		backRect.anchoredPosition = Vector2.zero;
+		backRect.sizeDelta = new Vector2(0f, 20f);
+
+		Image trail = CreateImage("Trail", backRect, new Color(0.95f, 0.85f, 0.75f, 0.8f));
+		_bossTrail = trail.rectTransform;
+		Image fill = CreateImage("Fill", backRect, BossHealthColor);
+		_bossFill = fill.rectTransform;
+		foreach (RectTransform bar in new[] { _bossTrail, _bossFill })
+		{
+			Stretch(bar);
+			bar.offsetMin = new Vector2(3f, 3f);
+			bar.offsetMax = new Vector2(-3f, -3f);
+		}
+
+		_bossRoot.SetActive(false);
+	}
+
 	private static void PlaceInPanel(RectTransform rect, float y, float height)
 	{
 		rect.anchorMin = new Vector2(0f, 1f);

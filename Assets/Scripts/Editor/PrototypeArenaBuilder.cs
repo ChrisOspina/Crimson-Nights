@@ -17,7 +17,7 @@ public static class PrototypeArenaBuilder
 	internal const string EnemyPrefabPath = "Assets/Prefabs/Enemies/VampireThrall_Proto.prefab";
 	// small common heal (the jar) and big rare heal (the kit)
 	internal const string HealthPickupPrefabPath = "Assets/Prefabs/Pickups/HealthPickup_Proto.prefab";
-	private const string HealthKitPickupPrefabPath = "Assets/Prefabs/Pickups/HealthKitPickup_Proto.prefab";
+	internal const string HealthKitPickupPrefabPath = "Assets/Prefabs/Pickups/HealthKitPickup_Proto.prefab";
 	internal const string AmmoPickupPrefabPath = "Assets/Prefabs/Pickups/AmmoPickup_Proto.prefab";
 	private const string RevolverDataPath = "Assets/Data/Weapons/Revolver.asset";
 	private const string ShotgunDataPath = "Assets/Data/Weapons/RelicShotgun.asset";
@@ -56,6 +56,24 @@ public static class PrototypeArenaBuilder
 	private const string ThrallClothSourcePath = VampireFolder + "Materials/M_Cloth Material 2.mat";
 	private const string ThrallSkinPath = "Assets/Materials/Enemies/Thrall_Skin.mat";
 	private const string ThrallClothPath = "Assets/Materials/Enemies/Thrall_Cloth.mat";
+
+	// the Countess (Phase 4 mini-boss): the same model, taller, in the pack's pale blue-skinned set. Built by
+	// BuildCountessPrefab, which the museum builder calls
+	internal const string CountessPrefabPath = "Assets/Prefabs/Enemies/Countess.prefab";
+	private const string CountessDataPath = "Assets/Data/Enemies/Countess.asset";
+	private const float CountessHeight = 2.15f;
+	private const string CountessSkinSourcePath = VampireFolder + "Materials/M_Vampire Material.mat";
+	private const string CountessClothSourcePath = VampireFolder + "Materials/M_Cloth Material.mat";
+	private const string CountessSkinPath = "Assets/Materials/Enemies/Countess_Skin.mat";
+	private const string CountessClothPath = "Assets/Materials/Enemies/Countess_Cloth.mat";
+	private const string CountessMusicPath = "Assets/ThirdParty/Audio/MaxStack/Whispers of Macabre/Audio/Music/WM Eternal Thirst A.wav";
+	private const string CountessShriekClipName = "alesiadavina-female-vampire-attack-shriek-dark-supernatural-sfx-552130.mp3";
+	private const string CountessBlinkClipName = "dragon-studio-whoosh-cinematic-376875.mp3";
+	private static readonly string[] ThrallShriekClipNames =
+	{
+		"freesound_community-monster-shriek-100292.mp3",
+		"freesound_community-gibbering-mouther-shriek-98620.mp3",
+	};
 	// blood particle effects, made once and reused so Inspector tweaks stick
 	private const string BloodHitPath = "Assets/Prefabs/FX/Blood_Hit.prefab";
 	private const string BloodDeathPath = "Assets/Prefabs/FX/Blood_Death.prefab";
@@ -131,6 +149,7 @@ public static class PrototypeArenaBuilder
 
 		EnemyData enemyData = GetOrCreateAsset<EnemyData>(EnemyDataPath, out _);
 		if (enemyData.AttackHitClip == null) enemyData.AttackHitClip = LoadClip("Monster Bite.wav");
+		if (enemyData.ShriekClips == null || enemyData.ShriekClips.Length == 0) enemyData.ShriekClips = LoadClips(ThrallShriekClipNames);
 		Material bloodMat = GetOrCreateBloodMaterial();
 		if (enemyData.HitFX == null)
 		{
@@ -151,8 +170,9 @@ public static class PrototypeArenaBuilder
 		SetupRounds(revolverData, revolverRound, RevolverCasingPrefabPath, RevolverRoundIconPath, 0.04f);
 		SetupRounds(shotgunData, shotgunShell, ShotgunCasingPrefabPath, ShotgunRoundIconPath, 0.075f);
 
-		GameObject enemyPrefab = GetOrCreateEnemyPrefab(enemyData, enemyMat);
-		SetupEnemyModel(enemyData);
+		GameObject enemyPrefab = GetOrCreateEnemyPrefab(EnemyPrefabPath, enemyData, enemyMat);
+		SetupEnemyModel(EnemyPrefabPath, enemyData, ThrallHeight,
+			GetOrCreateMaterialCopy(ThrallSkinSourcePath, ThrallSkinPath), GetOrCreateMaterialCopy(ThrallClothSourcePath, ThrallClothPath));
 		Color healthColor = new Color(0.9f, 0.1f, 0.15f);
 		Pickup healthPickup = GetOrCreatePickupPrefab(HealthPickupPrefabPath, Pickup.Kind.Health, 25, 20f, healthColor, fxMat, PickupClipName);
 		Pickup healthKitPickup = GetOrCreatePickupPrefab(HealthKitPickupPrefabPath, Pickup.Kind.Health, 60, 45f, healthColor, fxMat, PickupClipName);
@@ -160,6 +180,11 @@ public static class PrototypeArenaBuilder
 		SetupPickupModel(HealthPickupPrefabPath, HealthJarModelPath, 0.28f, new Color(1f, 0.3f, 0.3f), 0.8f);
 		SetupPickupModel(HealthKitPickupPrefabPath, HealthKitModelPath, 0.45f, new Color(1f, 0.3f, 0.3f), 1.6f);
 		SetupAmmoPickupModel(shotgunShell, revolverRound);
+		// every thrall kill pays out (EnemyLoot); empty slots only, so Inspector changes stick
+		if (enemyData.AmmoDrop == null) enemyData.AmmoDrop = ammoPickup;
+		if (enemyData.HealthDrop == null) enemyData.HealthDrop = healthPickup;
+		if (enemyData.MajorHealthDrop == null) enemyData.MajorHealthDrop = healthKitPickup;
+		EditorUtility.SetDirty(enemyData);
 		DodgeData dodgeData = GetOrCreateAsset<DodgeData>(DodgeDataPath, out _);
 		StyleData styleData = GetOrCreateAsset<StyleData>(StyleDataPath, out _);
 
@@ -231,6 +256,18 @@ public static class PrototypeArenaBuilder
 		return clip;
 	}
 
+	// the clips that exist, in order; missing ones are skipped (and warned about by LoadClip)
+	private static AudioClip[] LoadClips(string[] fileNames)
+	{
+		var clips = new System.Collections.Generic.List<AudioClip>();
+		foreach (string name in fileNames)
+		{
+			AudioClip clip = LoadClip(name);
+			if (clip != null) clips.Add(clip);
+		}
+		return clips.ToArray();
+	}
+
 	internal static void EnsureFolder(string folder)
 	{
 		if (AssetDatabase.IsValidFolder(folder)) return;
@@ -241,14 +278,14 @@ public static class PrototypeArenaBuilder
 
 	// ---------------------------------------------------------------- prefabs
 
-	private static GameObject GetOrCreateEnemyPrefab(EnemyData data, Material material)
+	private static GameObject GetOrCreateEnemyPrefab(string path, EnemyData data, Material material)
 	{
-		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+		GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
 		if (existing != null) return existing;
 
-		EnsureFolder(System.IO.Path.GetDirectoryName(EnemyPrefabPath).Replace('\\', '/'));
+		EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
 
-		var root = new GameObject("VampireThrall_Proto");
+		var root = new GameObject(System.IO.Path.GetFileNameWithoutExtension(path));
 		root.layer = EnemyLayer;
 
 		GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -271,14 +308,14 @@ public static class PrototypeArenaBuilder
 		agent.angularSpeed = 720f;
 		agent.speed = data.MoveSpeed;
 
-		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefabPath);
+		GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
 		Object.DestroyImmediate(root);
 		return prefab;
 	}
 
-	// Swaps the thrall's cube (or an earlier model) for the vampire model, driven by EnemyAnimator. The
-	// telegraph and hit flash move to the model's rim glow, since its shaders have no _BaseColor
-	private static void SetupEnemyModel(EnemyData data)
+	// Swaps an enemy prefab's cube (or an earlier model) for the vampire model at `height`, driven by
+	// EnemyAnimator. The telegraph and hit flash move to the model's rim glow, since its shaders have no _BaseColor
+	private static void SetupEnemyModel(string prefabPath, EnemyData data, float height, Material skin, Material cloth)
 	{
 		var source = AssetDatabase.LoadAssetAtPath<GameObject>(ThrallModelPath);
 		AnimatorController controller = GetOrCreateVampireController();
@@ -288,7 +325,7 @@ public static class PrototypeArenaBuilder
 			return;
 		}
 
-		GameObject root = PrefabUtility.LoadPrefabContents(EnemyPrefabPath);
+		GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
 		try
 		{
 			foreach (string oldName in new[] { "Body", "Model" })
@@ -306,12 +343,11 @@ public static class PrototypeArenaBuilder
 			foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
 			foreach (Rigidbody body in model.GetComponentsInChildren<Rigidbody>(true)) Object.DestroyImmediate(body);
 			foreach (Transform t in model.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = EnemyLayer;
-			SetModelMaterials(model, GetOrCreateMaterialCopy(ThrallSkinSourcePath, ThrallSkinPath),
-				GetOrCreateMaterialCopy(ThrallClothSourcePath, ThrallClothPath));
+			SetModelMaterials(model, skin, cloth);
 
-			// scaled to the thrall's height, standing on the root and centred over it
+			// scaled to `height`, standing on the root and centred over it
 			Bounds bounds = ModelBounds(model, root.transform);
-			float scale = bounds.size.y > 0f ? ThrallHeight / bounds.size.y : 1f;
+			float scale = bounds.size.y > 0f ? height / bounds.size.y : 1f;
 			model.transform.localScale *= scale;
 			model.transform.localPosition = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z) * scale;
 
@@ -323,9 +359,9 @@ public static class PrototypeArenaBuilder
 			// the cube's box collider went with it; weapons need something to hit
 			var capsule = root.GetComponent<CapsuleCollider>();
 			if (capsule == null) capsule = root.AddComponent<CapsuleCollider>();
-			capsule.center = new Vector3(0f, ThrallHeight * 0.5f, 0f);
-			capsule.height = ThrallHeight;
-			capsule.radius = 0.4f;
+			capsule.center = new Vector3(0f, height * 0.5f, 0f);
+			capsule.height = height;
+			capsule.radius = 0.4f * height / ThrallHeight;
 
 			var enemy = root.GetComponent<EnemyController>();
 			enemy.Body = null;
@@ -333,9 +369,9 @@ public static class PrototypeArenaBuilder
 			var enemyAnimator = root.GetComponent<EnemyAnimator>();
 			if (enemyAnimator == null) enemyAnimator = root.AddComponent<EnemyAnimator>();
 			enemyAnimator.Animator = animator;
-			root.GetComponent<NavMeshAgent>().height = ThrallHeight;
+			root.GetComponent<NavMeshAgent>().height = height;
 
-			PrefabUtility.SaveAsPrefabAsset(root, EnemyPrefabPath);
+			PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
 		}
 		finally
 		{
@@ -351,6 +387,118 @@ public static class PrototypeArenaBuilder
 			data.CorpseTime = 2.5f;
 			EditorUtility.SetDirty(data);
 		}
+	}
+
+	// The Countess: her own EnemyData (made once from the defaults below, so Inspector tuning sticks), the
+	// vampire model at CountessHeight in her own materials, and CountessBoss (her thralls, shriek, blink sound
+	// and music; empty clip slots are filled, the thrall prefab is set every run). The model is rebuilt on every
+	// run, like the thrall's. Needs the thrall prefab and data, so Build Prototype Arena must have run once.
+	// Returns null if they're missing
+	internal static GameObject BuildCountessPrefab()
+	{
+		var thrallData = AssetDatabase.LoadAssetAtPath<EnemyData>(EnemyDataPath);
+		var thrallPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
+		if (thrallData == null || thrallPrefab == null)
+		{
+			Debug.LogError("[PrototypeArenaBuilder] Thrall prefab or data missing, so no Countess. Run Tools > Crimson Nights > Build Prototype Arena first.");
+			return null;
+		}
+
+		EnemyData data = GetOrCreateAsset<EnemyData>(CountessDataPath, out bool created);
+		if (created) ApplyCountessDefaults(data, thrallData);
+		// her Lunge tell is her own shriek, not the thralls'
+		if (data.ShriekClips == null || data.ShriekClips.Length == 0) data.ShriekClips = LoadClips(new[] { CountessShriekClipName });
+		EditorUtility.SetDirty(data);
+
+		GetOrCreateEnemyPrefab(CountessPrefabPath, data, GetOrCreateMaterial("Enemy_Thrall", LitShader, Color.white));
+		SetupEnemyModel(CountessPrefabPath, data, CountessHeight,
+			GetOrCreateMaterialCopy(CountessSkinSourcePath, CountessSkinPath), GetOrCreateMaterialCopy(CountessClothSourcePath, CountessClothPath));
+
+		AudioClip music = AssetDatabase.LoadAssetAtPath<AudioClip>(CountessMusicPath);
+		if (music == null) Debug.LogWarning("[PrototypeArenaBuilder] Boss music not found: " + CountessMusicPath);
+		else StreamClip(CountessMusicPath);
+
+		GameObject root = PrefabUtility.LoadPrefabContents(CountessPrefabPath);
+		try
+		{
+			var boss = GetOrAdd<CountessBoss>(root);
+			boss.ThrallPrefab = thrallPrefab;
+			if (boss.ShriekClip == null) boss.ShriekClip = LoadClip(CountessShriekClipName);
+			if (boss.BlinkClip == null) boss.BlinkClip = LoadClip(CountessBlinkClipName);
+			if (boss.Music == null) boss.Music = music;
+			root.GetComponent<NavMeshAgent>().radius = 0.55f;
+			PrefabUtility.SaveAsPrefabAsset(root, CountessPrefabPath);
+		}
+		finally
+		{
+			PrefabUtility.UnloadPrefabContents(root);
+		}
+		AssetDatabase.SaveAssets();
+		return AssetDatabase.LoadAssetAtPath<GameObject>(CountessPrefabPath);
+	}
+
+	// A stronger thrall: ten times the health, and armoured. Revolver shots and jabs flinch her between attacks,
+	// but once she winds up a Strike only a hook, a haymaker or a close shotgun blast interrupts it, and a
+	// perfect dodge always opens her up. Her Lunge reaches further, and only a haymaker or a near point-blank
+	// blast stops it
+	private static void ApplyCountessDefaults(EnemyData data, EnemyData thrall)
+	{
+		data.MaxHealth = 600f;
+		data.MoveSpeed = 5f;
+		data.Acceleration = 30f;
+		data.DetectionRange = 40f;
+		data.Strike = new EnemyData.Attack
+		{
+			MaxRange = 2.2f,
+			ReachGrace = 0.7f,
+			Angle = 80f,
+			WindUpTime = 0.7f,
+			Damage = 15f,
+			RecoverTime = 0.7f,
+			StaggerThreshold = 30f,
+			TelegraphColor = new Color(1f, 0.85f, 0.1f),
+		};
+		data.Lunge = new EnemyData.Attack
+		{
+			MinRange = 4f,
+			MaxRange = 9f,
+			ReachGrace = 0.6f,
+			Angle = 60f,
+			WindUpTime = 0.8f,
+			Damage = 28f,
+			RecoverTime = 1.1f,
+			Cooldown = 3.5f,
+			StaggerThreshold = 45f,
+			TelegraphColor = new Color(1f, 0.3f, 0.05f),
+		};
+		data.LungeOvershoot = 1.5f;
+		data.LungeMaxDistance = 11f;
+		data.LungeSpeed = 20f;
+		data.LungeHitRadius = 1.3f;
+		data.StaggerTime = 0.4f;
+		data.BaseStaggerThreshold = 15f;
+		data.KnockbackScale = 0.3f;
+
+		data.AttackHitClip = thrall.AttackHitClip;
+		data.HitFX = thrall.HitFX;
+		data.DeathFX = thrall.DeathFX;
+		data.BiteFX = thrall.BiteFX;
+		data.TintProperty = "_FresnelColor";
+		data.BodyColor = new Color(0.45f, 0.03f, 0.2f);
+		data.HitFlashColor = Color.white;
+		data.CorpseTime = 4f;
+	}
+
+	// long music streams instead of sitting decoded in memory
+	private static void StreamClip(string path)
+	{
+		if (!(AssetImporter.GetAtPath(path) is AudioImporter importer)) return;
+		AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+		if (settings.loadType == AudioClipLoadType.Streaming && settings.compressionFormat == AudioCompressionFormat.Vorbis) return;
+		settings.loadType = AudioClipLoadType.Streaming;
+		settings.compressionFormat = AudioCompressionFormat.Vorbis;
+		importer.defaultSampleSettings = settings;
+		importer.SaveAndReimport();
 	}
 
 	// gives a vampire model its own skin and cloth materials (the pack's cloth materials have "Cloth" in their
@@ -1243,9 +1391,6 @@ public static class PrototypeArenaBuilder
 		spawner.transform.SetParent(arena.transform, false);
 		spawner.EnemyPrefab = enemyPrefab;
 		spawner.SpawnPoints = spawnPoints;
-		spawner.HealthDropPrefab = healthPickup;
-		spawner.MajorHealthDropPrefab = healthKitPickup;
-		spawner.AmmoDropPrefab = ammoPickup;
 
 		// placed pickups (respawning): the health kit up on the platform, jars behind cover and by a pillar,
 		// ammo by the other pillars

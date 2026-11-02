@@ -11,14 +11,18 @@ using UnityEngine.Rendering.Universal;
 //
 //   Entrance Corridor (start) -> Grand Gallery (hub: exhibits, chandeliers, a staircase up to a dais)
 //   -> locked door -> Vampire History Wing (the Morvayne tomb, the curator's journal) -> locked Archive door
+//   -> Archive (the acquisitions ledger; the Countess, the mini-boss) -> through her empty portrait: end of level
 //
 // Walking into the gallery slams the corridor door and spawns two thralls; the last one drops the History
-// Wing Key. The wing has a second, smaller ambush. Readable placards and letters carry the story.
+// Wing Key. The wing has a second, smaller ambush and the coffin puzzle for the Archive Key. Halfway into the
+// Archive the Countess steps out of her portrait; once she's dead, climbing through the empty frame ends the
+// level (LevelExit, the end-of-demo card). Readable placards and letters carry the story.
 //
 // Geometry is boxes with world-space UVs (so the Environment materials tile evenly), props are copies of
 // the third-party prefabs measured and scaled to set sizes. Safe to re-run: the Museum root, the player
 // and the camera rig are rebuilt; data assets and the volume profile are reused.
-// Uses the enemy and pickup prefabs from Build Prototype Arena, so run that once first.
+// Uses the enemy and pickup prefabs from Build Prototype Arena, so run that once first. The Countess prefab is
+// (re)built from here, through PrototypeArenaBuilder.BuildCountessPrefab.
 public static class MuseumBuilder
 {
 	private const string ScenePath = "Assets/Scenes/Museum.unity";
@@ -66,6 +70,9 @@ public static class MuseumBuilder
 	private const float DaisHeight = 1.8f;
 	private const float WingHeight = 5f;
 	private const float Wall = 0.5f;
+	// metres between the front of the Countess's portrait and where she spawns, so her body (and her wake-up
+	// animation) stays clear of the frame
+	private const float CountessSpawnClearance = 1.1f;
 
 	private static readonly Color CandleColor = new Color(1f, 0.62f, 0.32f);
 	private static readonly Color ChandelierColor = new Color(1f, 0.75f, 0.5f);
@@ -113,8 +120,8 @@ public static class MuseumBuilder
 
 		BuildCorridor(root, out Door entranceDoor);
 		BuildGallery(root, enemyPrefab, wingKey, entranceDoor, out Door wingDoor);
-		BuildWing(root, enemyPrefab, archiveKey, wingDoor);
-		BuildArchive(root);
+		Door archiveDoor = BuildWing(root, enemyPrefab, archiveKey, wingDoor);
+		BuildArchive(root, PrototypeArenaBuilder.BuildCountessPrefab(), archiveDoor);
 
 		// navmesh, baked at runtime from the colliders under the root (doors are left out of the bake)
 		var surface = root.gameObject.AddComponent<NavMeshSurface>();
@@ -512,7 +519,7 @@ public static class MuseumBuilder
 
 	// 12 x 12 m at dais height, z 14.5 .. 26. The Morvayne tomb, coffins along the walls, the curator's
 	// journal, a second ambush, the coffin puzzle and the locked Archive door
-	private static void BuildWing(Transform root, GameObject enemyPrefab, KeyData archiveKey, Door wingDoor)
+	private static Door BuildWing(Transform root, GameObject enemyPrefab, KeyData archiveKey, Door wingDoor)
 	{
 		Transform room = Group(root, "HistoryWing");
 		const float floor = DaisHeight, top = DaisHeight + WingHeight;
@@ -598,11 +605,13 @@ public static class MuseumBuilder
 
 		PlacePickup(room, PrototypeArenaBuilder.AmmoPickupPrefabPath, new Vector3(-4.8f, floor, 15.5f));
 		PlacePickup(room, PrototypeArenaBuilder.HealthPickupPrefabPath, new Vector3(-4.8f, floor, 21f));
+		return archiveDoor;
 	}
 
 	// 12 x 12 m behind the wing, z 26.5 .. 38.5. The curator's records: the acquisitions ledger that gives the game away (the exhibits are alive), the museum's charter hinting at
-	// what's below, and the Countess's empty portrait on the far wall. The open floor is the boss arena
-	private static void BuildArchive(Transform root)
+	// what's below, and the Countess's empty portrait on the far wall. The open floor is the boss arena: past the
+	// reading table, the portrait's glass bursts, the Archive door slams and bars, and she steps out of the frame
+	private static void BuildArchive(Transform root, GameObject countessPrefab, Door archiveDoor)
 	{
 		Transform room = Group(root, "Archive");
 		const float floor = DaisHeight, top = DaisHeight + WingHeight;
@@ -641,14 +650,32 @@ public static class MuseumBuilder
 			"Nothing is to be taken below the house, and nothing below the house is to be\n\n" +
 			"The rest of the page has been torn away.");
 
-		// the Countess's portrait on the far wall, framed by candle stands. She isn't in it
-		PlaceOnWall(room, Frames + "SM_frame_01.prefab", new Vector3(0f, floor + 2.4f, 38.5f), Vector3.back, 2.6f);
+		// the Countess's portrait on the far wall, framed by candle stands. She isn't in it. The frame stands
+		// well out from the wall and has no collider, so an invisible blocker fills the space under it down to the
+		// floor: the NavMesh stops at the frame's face, and she can never walk or blink into it
+		GameObject portrait = PlaceOnWall(room, Frames + "SM_frame_01.prefab", new Vector3(0f, floor + 2.4f, 38.5f), Vector3.back, 2.6f);
+		float portraitFront = 38.5f - 0.3f;
+		if (portrait != null)
+		{
+			Bounds frame = WorldBounds(portrait);
+			portraitFront = frame.min.z;
+			var blocker = new GameObject("PortraitBlocker");
+			blocker.isStatic = true;
+			blocker.transform.SetParent(room, false);
+			float depth = 38.5f - frame.min.z;
+			blocker.transform.position = new Vector3(frame.center.x, (floor + frame.max.y) * 0.5f, frame.min.z + depth * 0.5f);
+			blocker.AddComponent<BoxCollider>().size = new Vector3(frame.size.x, frame.max.y - floor, depth);
+		}
+
+		// the way on: once she's dead, the player climbs through her empty frame. Revealed by her encounter
+		GameObject exit = CreateLevelExit(room, portrait, new Vector3(0f, floor + 2.4f, portraitFront));
 		foreach (float x in new[] { -2.2f, 2.2f })
 		{
 			GameObject stand = PlaceProp(room, Pegasus + "Candle Stand.prefab", new Vector3(x, floor, 37.8f), 0f, 1.8f);
 			AddCandleLight(room, stand, 1.6f, 6f);
 		}
-		CreatePlacard(room, new Vector3(0f, floor, 36.6f), 180f,
+		// to one side of the portrait, so it isn't in her way when she steps out
+		CreatePlacard(room, new Vector3(1.3f, floor, 36.4f), 180f,
 			"Exhibit IX - The Countess Morvayne",
 			"Oil on canvas, 1760. The sitter was celebrated for her beauty and her appetite.\n\n" +
 			"The canvas is bare. Four long scratches run across the frame, from the inside out.");
@@ -664,9 +691,25 @@ public static class MuseumBuilder
 		PlaceHanging(room, Cobwebs + "SM_Cobwebs_06.prefab", new Vector3(5.6f, top, 38f), 90f, 1.2f);
 		PlaceHanging(room, Cobwebs + "SM_Cobwebs_08.prefab", new Vector3(-5.6f, top, 27f), 270f, 1.2f);
 
-		// supplies before whatever comes out of that frame
+		// supplies before whatever comes out of that frame (they respawn, so they also feed the fight)
 		PlacePickup(room, PrototypeArenaBuilder.AmmoPickupPrefabPath, new Vector3(4.6f, floor, 27.5f));
 		PlacePickup(room, PrototypeArenaBuilder.HealthPickupPrefabPath, new Vector3(-4.6f, floor, 27.5f));
+		// and a full heal before the boss: the rare kit, topped up to the player's whole bar. It respawns, so
+		// it's worth running back to mid-fight
+		Pickup fullHeal = PlacePickup(room, PrototypeArenaBuilder.HealthKitPickupPrefabPath, new Vector3(4.6f, floor, 29.5f));
+		if (fullHeal != null) fullHeal.Amount = 100;
+
+		// the boss: a trigger across the room just past the table, so the ledger can be read first. She spawns
+		// in front of the portrait, clear of the frame, facing the door
+		if (countessPrefab != null)
+		{
+			AudioSource shatter = AddSound(room, "PortraitShatter", new Vector3(0f, floor + 2.4f, 38.2f), GlassBreakClip, 1f, 2f, 30f, false);
+			Encounter boss = CreateEncounter(room, "CountessEncounter", new Vector3(0f, floor + 1.5f, 33f), new Vector3(12f, 3f, 1.5f), countessPrefab,
+				new[] { new Vector3(0f, floor, portraitFront - CountessSpawnClearance) }, archiveDoor,
+				"The portrait's glass bursts outwards. Something climbs down out of the frame.",
+				"The Countess falls, and stays down. Cold air is breathing out of her empty frame.", exit, new[] { shatter });
+			boss.MoveRewardToLastKill = false;
+		}
 	}
 
 	// ---------------------------------------------------------------- interactive pieces
@@ -782,6 +825,40 @@ public static class MuseumBuilder
 		readable.Body = body;
 		readable.ReadClip = _pageClip;
 		readable.Verb = verb;
+	}
+
+	// The end of the level: a trigger over the portrait's face (or a box at `fallbackCentre` if the frame is
+	// missing) that ends it through LevelExit. Inactive until the Countess's encounter is cleared
+	private static GameObject CreateLevelExit(Transform parent, GameObject portrait, Vector3 fallbackCentre)
+	{
+		var go = new GameObject("PortraitExit");
+		go.layer = IgnoreRaycastLayer;
+		go.transform.SetParent(parent, false);
+		var trigger = go.AddComponent<BoxCollider>();
+		trigger.isTrigger = true;
+		if (portrait != null)
+		{
+			// the frame's face, a little proud of it so the interact cast meets it first
+			Bounds frame = WorldBounds(portrait);
+			go.transform.position = new Vector3(frame.center.x, frame.center.y, frame.min.z);
+			trigger.size = new Vector3(frame.size.x, frame.size.y, 0.4f);
+		}
+		else
+		{
+			go.transform.position = fallbackCentre;
+			trigger.size = new Vector3(2f, 2.6f, 0.4f);
+		}
+
+		var exit = go.AddComponent<LevelExit>();
+		exit.Verb = "Climb through the frame";
+		exit.ExitMessage = "Behind the bare canvas, stone steps lead down. The air coming up them is warm.";
+		exit.ExitClip = PrototypeArenaBuilder.LoadClip(DoorOpenClip);
+		exit.Title = "THE CRIMSON MUSEUM";
+		// the torn line of the museum charter (Exhibit VII)
+		exit.Subtitle = "\"...and nothing below the house is to be\"";
+		exit.Footer = "End of the demo";
+		go.SetActive(false);
+		return go;
 	}
 
 	// inactive until an Encounter reveals it: the rust key, bobbing and turning, with a warm glow
@@ -901,12 +978,13 @@ public static class MuseumBuilder
 		return encounter;
 	}
 
-	private static void PlacePickup(Transform parent, string prefabPath, Vector3 position)
+	private static Pickup PlacePickup(Transform parent, string prefabPath, Vector3 position)
 	{
 		var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-		if (prefab == null) return;
+		if (prefab == null) return null;
 		var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
 		instance.transform.position = position;
+		return instance.GetComponent<Pickup>();
 	}
 
 	// ---------------------------------------------------------------- lights

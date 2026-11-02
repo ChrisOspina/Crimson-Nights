@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Spawns waves of enemies at the spawn points. The next wave starts a few seconds after the last one is cleared.
-// Killed enemies may drop a health or ammo pickup.
+// (What a killed enemy drops comes from its EnemyData, through EnemyLoot.)
 public class EnemySpawner : MonoBehaviour
 {
 	public GameObject EnemyPrefab;
@@ -12,18 +12,6 @@ public class EnemySpawner : MonoBehaviour
 	public int[] WaveSizes = { 3, 5, 7 };
 	public float FirstWaveDelay = 1.5f;
 	public float TimeBetweenWaves = 3f;
-
-	[Header("Drops")]
-	[Tooltip("Small, common heal (first aid jar)")]
-	public Pickup HealthDropPrefab;
-	[Tooltip("Big, rare heal (first aid kit)")]
-	public Pickup MajorHealthDropPrefab;
-	public Pickup AmmoDropPrefab;
-	[Range(0f, 1f)] public float HealthDropChance = 0.2f;
-	[Range(0f, 1f)] public float MajorHealthDropChance = 0.04f;
-	[Range(0f, 1f)] public float AmmoDropChance = 0.35f;
-	[Tooltip("Seconds before an uncollected drop disappears")]
-	public float DropLifetime = 20f;
 
 	public int CurrentWave { get; private set; }
 
@@ -65,28 +53,9 @@ public class EnemySpawner : MonoBehaviour
 			if (health == null) continue;
 
 			_alive.Add(health);
-			health.Died += () =>
-			{
-				_alive.Remove(health);
-				SpawnDrop(health.transform.position);
-			};
+			health.Died += () => _alive.Remove(health);
 		}
 
 		Debug.Log($"[EnemySpawner] Wave {CurrentWave}: {size} enemies");
-	}
-
-	// one roll split into ammo, small heal, then big heal bands, so at most one drop per kill
-	private void SpawnDrop(Vector3 position)
-	{
-		float roll = Random.value;
-		Pickup prefab = null;
-		if (roll < AmmoDropChance) prefab = AmmoDropPrefab;
-		else if (roll < AmmoDropChance + HealthDropChance) prefab = HealthDropPrefab;
-		else if (roll < AmmoDropChance + HealthDropChance + MajorHealthDropChance) prefab = MajorHealthDropPrefab;
-		if (prefab == null) return;
-
-		Pickup drop = Instantiate(prefab, position, Quaternion.identity);
-		drop.RespawnTime = 0f;
-		Destroy(drop.gameObject, DropLifetime);
 	}
 }

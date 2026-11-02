@@ -1664,6 +1664,7 @@ MonoBehaviour:
   PerfectDodgeFlashColor: {r: 0.75, g: 0.9, b: 1, a: 1}
   SpentRoundColor: {r: 1, g: 1, b: 1, a: 0.18}
   RoundIconHeight: 44
+  BossHealthColor: {r: 0.55, g: 0.02, b: 0.06, a: 1}
   StyleLowColor: {r: 0.7, g: 0.7, b: 0.72, a: 1}
   StyleHighColor: {r: 0.85, g: 0.08, b: 0.12, a: 1}
   StyleTopColor: {r: 1, g: 0.78, b: 0.3, a: 1}

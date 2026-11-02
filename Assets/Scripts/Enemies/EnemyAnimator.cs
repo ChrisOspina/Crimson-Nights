@@ -5,7 +5,8 @@ using UnityEngine.AI;
 // Plays an enemy model's animations from EnemyController's state, so the controller itself doesn't know
 // about models. The Animator needs states named Locomotion (a blend tree on the Speed parameter), Attack_L,
 // Attack_R, Attack_LR, Hit and Death; attack states use the AttackSpeed parameter as their speed, which is
-// set so the blow in the clip lands as the wind-up ends.
+// set so the blow in the clip lands as the wind-up ends. In the Scripted state it plays nothing by itself;
+// the boss script calls PlayState (Agr, WakeUp) instead.
 [RequireComponent(typeof(EnemyController))]
 public class EnemyAnimator : MonoBehaviour
 {
@@ -68,7 +69,7 @@ public class EnemyAnimator : MonoBehaviour
 			case EnemyController.State.Chase:
 				Play("Locomotion", 1f);
 				break;
-			// Lunge and Recover let the attack clip play on
+			// Lunge and Recover let the attack clip play on; Scripted leaves it to PlayState
 		}
 	}
 
@@ -81,11 +82,17 @@ public class EnemyAnimator : MonoBehaviour
 		if (!lunge) _leftNext = !_leftNext;
 
 		float speed = 1f;
-		if (_clipLengths.TryGetValue(clip, out float length) && attack.WindUpTime > 0f)
+		if (_clipLengths.TryGetValue(clip, out float length) && _enemy.WindUpDuration > 0f)
 		{
-			speed = length * (lunge ? LungeImpact : StrikeImpact) / attack.WindUpTime;
+			speed = length * (lunge ? LungeImpact : StrikeImpact) / _enemy.WindUpDuration;
 		}
 		Play(clip, speed);
+	}
+
+	// plays a one-off state (Agr, WakeUp) at normal speed; for scripts holding the enemy in State.Scripted
+	public void PlayState(string state)
+	{
+		if (Animator != null) Play(state, 1f);
 	}
 
 	private void Play(string state, float speed)

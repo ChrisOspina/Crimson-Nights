@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d805cb91331c95459fbd009f31df2a2, type: 3}
+  m_Name: Countess
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  MaxHealth: 600
+  MoveSpeed: 5
+  Acceleration: 30
+  DetectionRange: 40
+  Strike:
+    MinRange: 0
+    MaxRange: 2.2
+    ReachGrace: 0.7
+    Angle: 80
+    WindUpTime: 0.7
+    Damage: 15
+    RecoverTime: 0.7
+    Cooldown: 0
+    StaggerThreshold: 30
+    TelegraphColor: {r: 1, g: 0.85, b: 0.1, a: 1}
+  Lunge:
+    MinRange: 4
+    MaxRange: 9
+    ReachGrace: 0.6
+    Angle: 60
+    WindUpTime: 0.8
+    Damage: 28
+    RecoverTime: 1.1
+    Cooldown: 3.5
+    StaggerThreshold: 45
+    TelegraphColor: {r: 1, g: 0.3, b: 0.05, a: 1}
+  LungeOvershoot: 1.5
+  LungeMaxDistance: 11
+  LungeSpeed: 20
+  LungeHitRadius: 1.3
+  StaggerTime: 0.4
+  BaseStaggerThreshold: 15
+  KnockbackScale: 0.3
+  AttackHitClip: {fileID: 8300000, guid: 4ec1edd89ea2e844f86900c51b795c63, type: 3}
+  ShriekClips:
+  - {fileID: 8300000, guid: 94d48e1cec832b141857bbb37234be1d, type: 3}
+  ShriekVolume: 0.9
+  ShriekCooldown: 2.5
+  HitFX: {fileID: 8305801160430543568, guid: 37a719214a5ff46469841102ce9ceed4, type: 3}
+  DeathFX: {fileID: 6172882073668124284, guid: 57bc7f42c91c47c4e95350effcf2f12f, type: 3}
+  BiteFX: {fileID: 7215582669681638169, guid: 10f0f21d323fd604fbed9f7d7a156295, type: 3}
+  AmmoDrop: {fileID: 0}
+  HealthDrop: {fileID: 0}
+  MajorHealthDrop: {fileID: 0}
+  DropChance: 1
+  BothChance: 0.2
+  MajorHealthChance: 0.06
+  DropLifetime: 25
+  TintProperty: _FresnelColor
+  BodyColor: {r: 0.45, g: 0.03, b: 0.2, a: 1}
+  HitFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  CorpseTime: 4

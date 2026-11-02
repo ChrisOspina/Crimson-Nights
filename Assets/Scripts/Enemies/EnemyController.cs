@@ -6,11 +6,13 @@ using UnityEngine.AI;
 // Strike: close-range swipe, interrupted by any revolver shot. Lunge: mid-range dash with a longer red-orange
 // telegraph that only a high-stagger hit (shotgun, heavy punch) interrupts. Hits below the current stagger
 // threshold still do damage but don't interrupt.
+// A boss script (CountessBoss) can Hold the enemy in the Scripted state for intros and special moves, Release
+// it back into the chase, Teleport it, and speed it up with SetTempo.
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Health))]
 public class EnemyController : MonoBehaviour
 {
-	public enum State { Idle, Chase, WindUp, Lunge, Recover, Stagger, Dead }
+	public enum State { Idle, Chase, WindUp, Lunge, Recover, Stagger, Dead, Scripted }
 
 	public EnemyData Data;
 	[Tooltip("Visual child that gets tinted and scaled (the prototype cube)")]
@@ -21,6 +23,10 @@ public class EnemyController : MonoBehaviour
 	public State CurrentState { get; private set; } = State.Idle;
 	// the attack being wound up or performed (compare with Data.Strike / Data.Lunge)
 	public EnemyData.Attack CurrentAttack => _attack;
+	// multiplies move speed and divides wind-up and recovery times (1 = as tuned in Data)
+	public float Tempo { get; private set; } = 1f;
+	// the current attack's wind-up at the current tempo
+	public float WindUpDuration => _attack.WindUpTime / Tempo;
 
 	private int _tintId;
 	private Renderer[] _renderers = new Renderer[0];
@@ -37,6 +43,11 @@ public class EnemyController : MonoBehaviour
 	private Vector3 _knockback;
 	private Vector3 _visualRestScale;
 	private MaterialPropertyBlock _block;
+	private AudioSource _voice;
+	private float _nextShriekTime;
+	// shared by every enemy, so a pack noticing the player at once doesn't shriek in a wall of noise
+	private static float _anyShriekTime = -100f;
+	private const float ShriekSpacing = 0.5f;
 
 	// the attack being wound up or performed
 	private EnemyData.Attack _attack;
@@ -61,6 +72,15 @@ public class EnemyController : MonoBehaviour
 		{
 			_visualRestScale = Visual.localScale;
 			_renderers = Visual.GetComponentsInChildren<Renderer>(true);
+		}
+		if (Data.ShriekClips != null && Data.ShriekClips.Length > 0)
+		{
+			_voice = gameObject.AddComponent<AudioSource>();
+			_voice.playOnAwake = false;
+			_voice.spatialBlend = 1f;
+			_voice.minDistance = 3f;
+			_voice.maxDistance = 35f;
+			_voice.rolloffMode = AudioRolloffMode.Linear;
 		}
 		_tintId = Shader.PropertyToID(string.IsNullOrEmpty(Data.TintProperty) ? "_BaseColor" : Data.TintProperty);
 	}
@@ -111,7 +131,11 @@ public class EnemyController : MonoBehaviour
 		switch (CurrentState)
 		{
 			case State.Idle:
-				if (playerAlive && DistanceToPlayer() <= Data.DetectionRange) Enter(State.Chase);
+				if (playerAlive && DistanceToPlayer() <= Data.DetectionRange)
+				{
+					Shriek();
+					Enter(State.Chase);
+				}
 				break;
 
 			case State.Chase:
@@ -145,6 +169,10 @@ public class EnemyController : MonoBehaviour
 			case State.Stagger:
 				if (_stateTimer <= 0f) Enter(playerAlive ? State.Chase : State.Idle);
 				break;
+
+			// held by a script until Release
+			case State.Scripted:
+				break;
 		}
 
 		UpdateVisuals();
@@ -164,8 +192,8 @@ public class EnemyController : MonoBehaviour
 
 		switch (state)
 		{
-			case State.WindUp: _stateTimer = _attack.WindUpTime; break;
-			case State.Recover: _stateTimer = _attack.RecoverTime; break;
+			case State.WindUp: _stateTimer = WindUpDuration; break;
+			case State.Recover: _stateTimer = _attack.RecoverTime / Tempo; break;
 			case State.Stagger: _stateTimer = Data.StaggerTime; break;
 			case State.Chase: _repathTimer = 0f; break;
 		}
@@ -184,7 +212,22 @@ public class EnemyController : MonoBehaviour
 	private void BeginAttack(EnemyData.Attack attack)
 	{
 		_attack = attack;
+		if (attack == Data.Lunge) Shriek(true);
 		Enter(State.WindUp);
+	}
+
+	// a random clip from Data.ShriekClips, slightly re-pitched. `force` (the Lunge tell) ignores the cooldowns
+	private void Shriek(bool force = false)
+	{
+		if (_voice == null) return;
+		if (!force && (Time.time < _nextShriekTime || Time.time < _anyShriekTime + ShriekSpacing)) return;
+
+		AudioClip clip = Data.ShriekClips[Random.Range(0, Data.ShriekClips.Length)];
+		if (clip == null) return;
+		_voice.pitch = Random.Range(0.9f, 1.1f);
+		_voice.PlayOneShot(clip, Data.ShriekVolume);
+		_nextShriekTime = Time.time + Data.ShriekCooldown;
+		_anyShriekTime = Time.time;
 	}
 
 	// end of the wind-up: a perfect dodge cancels the attack, otherwise strike or start the lunge dash
@@ -255,12 +298,42 @@ public class EnemyController : MonoBehaviour
 		return true;
 	}
 
+	// ---------------------------------------------------------------- scripting (bosses)
+
+	// stops the enemy where it stands, cancelling any attack, until Release. Hits still hurt but don't stagger
+	public void Hold()
+	{
+		if (CurrentState == State.Dead) return;
+		_knockback = Vector3.zero;
+		Enter(State.Scripted);
+	}
+
+	public void Release()
+	{
+		if (CurrentState != State.Scripted) return;
+		Enter(_player != null ? State.Chase : State.Idle);
+	}
+
+	public void Teleport(Vector3 position, Vector3 facing)
+	{
+		if (_agent.isOnNavMesh) _agent.Warp(position);
+		else transform.position = position;
+		facing.y = 0f;
+		if (facing.sqrMagnitude > 0.001f) transform.rotation = Quaternion.LookRotation(facing);
+	}
+
+	public void SetTempo(float tempo)
+	{
+		Tempo = Mathf.Max(0.1f, tempo);
+		_agent.speed = Data.MoveSpeed * Tempo;
+	}
+
 	// ---------------------------------------------------------------- reactions
 
 	// staggers for at least `duration`; never shortens a stagger already running (e.g. a long perfect-dodge stagger)
 	public void Stagger(float duration)
 	{
-		if (CurrentState == State.Dead) return;
+		if (CurrentState == State.Dead || CurrentState == State.Scripted) return;
 		float remaining = CurrentState == State.Stagger ? _stateTimer : 0f;
 		Enter(State.Stagger);
 		_stateTimer = Mathf.Max(remaining, duration);
@@ -270,6 +343,7 @@ public class EnemyController : MonoBehaviour
 	{
 		_hitFlashTimer = 0.08f;
 		FX.Spawn(Data.HitFX, info.Point, info.Direction);
+		if (CurrentState == State.Scripted) return;
 
 		// during a wind-up or lunge only a strong enough hit interrupts; the hit still does damage either way
 		bool attacking = CurrentState == State.WindUp || CurrentState == State.Lunge;
@@ -290,6 +364,7 @@ public class EnemyController : MonoBehaviour
 		_agent.enabled = false;
 		foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
 		FX.Spawn(Data.DeathFX, transform.position + Vector3.up * 1.2f, Vector3.up);
+		EnemyLoot.Drop(Data, transform.position, _player != null ? _player.gameObject : null);
 		StartCoroutine(DeathRoutine());
 	}
 
@@ -331,7 +406,7 @@ public class EnemyController : MonoBehaviour
 
 		if (CurrentState == State.WindUp)
 		{
-			float t = 1f - Mathf.Clamp01(_stateTimer / _attack.WindUpTime);
+			float t = 1f - Mathf.Clamp01(_stateTimer / WindUpDuration);
 			// flicker faster as the attack gets closer
 			float pulse = 0.5f + 0.5f * Mathf.Sin(t * t * 40f);
 			color = Color.Lerp(Data.BodyColor, _attack.TelegraphColor, Mathf.Lerp(0.4f, 1f, pulse * t + t * 0.5f));

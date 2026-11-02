@@ -146,6 +146,7 @@ public class StyleMeter : MonoBehaviour
 		if (rank != _lastRank)
 		{
 			_lastRank = rank;
+			RunStats.ReportStyleRank(rank);
 			RankChanged?.Invoke(rank);
 		}
 	}
