@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -31,6 +32,10 @@ public class Encounter : MonoBehaviour
 
 	public bool Started { get; private set; }
 	public bool Cleared { get; private set; }
+
+	// raised by every encounter as its fight starts and when it's cleared (MusicDirector listens)
+	public static event Action<Encounter> AnyStarted;
+	public static event Action<Encounter> AnyCleared;
 
 	private readonly List<Health> _alive = new List<Health>();
 	private PlayerInteractor _player;
@@ -70,6 +75,7 @@ public class Encounter : MonoBehaviour
 			}
 		}
 		if (_player != null) _player.ShowMessage(StartMessage);
+		AnyStarted?.Invoke(this);
 		Invoke(nameof(Spawn), SpawnDelay);
 	}
 
@@ -110,5 +116,6 @@ public class Encounter : MonoBehaviour
 			Reward.SetActive(true);
 		}
 		if (_player != null) _player.ShowMessage(ClearedMessage);
+		AnyCleared?.Invoke(this);
 	}
 }

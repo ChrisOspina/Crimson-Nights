@@ -490,7 +490,7 @@ public static class PrototypeArenaBuilder
 	}
 
 	// long music streams instead of sitting decoded in memory
-	private static void StreamClip(string path)
+	internal static void StreamClip(string path)
 	{
 		if (!(AssetImporter.GetAtPath(path) is AudioImporter importer)) return;
 		AudioImporterSampleSettings settings = importer.defaultSampleSettings;

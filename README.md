@@ -15,7 +15,7 @@ The full design is in [`gameplan.md`](gameplan.md).
 - **The Archive**: the curator's ledgers reveal what the exhibits really are, then the mini-boss, the Countess Morvayne
 - **End of the demo**: a stats card with your time, deaths and best style rank
 
-Still to come for the slice: exploration music, visual polish, and a title screen and pause menu.
+Each area has its own music, which drops out when a fight starts. Still to come for the slice: visual polish, and a title screen and pause menu.
 
 ## Controls
 

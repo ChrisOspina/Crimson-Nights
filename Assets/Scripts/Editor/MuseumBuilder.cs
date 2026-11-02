@@ -62,6 +62,13 @@ public static class MuseumBuilder
 	private const string WindClip = "soundsforyou-wind-outside-sound-ambient-141989.mp3";
 	private const string FireClip = "soundreality-fire-crackling-sound-499636.mp3";
 
+	// exploration music (MaxStack's Whispers of Macabre): the pack's quietest, most ambient tracks, one per area.
+	// The louder Eternal Thirst is the Countess's
+	private const string MusicFolder = "Assets/ThirdParty/Audio/MaxStack/Whispers of Macabre/Audio/Music/";
+	private const string GalleryMusic = MusicFolder + "WM Veil of Shadows A.wav";
+	private const string WingMusic = MusicFolder + "WM Abode of the Immortal A.wav";
+	private const string ArchiveMusic = MusicFolder + "WM Abode of the Immortal B.wav";
+
 	private const int IgnoreRaycastLayer = PrototypeArenaBuilder.IgnoreRaycastLayer;
 
 	// room extents (metres). The gallery's dais and the wing floor are 1.8 m up
@@ -122,6 +129,7 @@ public static class MuseumBuilder
 		BuildGallery(root, enemyPrefab, wingKey, entranceDoor, out Door wingDoor);
 		Door archiveDoor = BuildWing(root, enemyPrefab, archiveKey, wingDoor);
 		BuildArchive(root, PrototypeArenaBuilder.BuildCountessPrefab(), archiveDoor);
+		BuildMusic(root);
 
 		// navmesh, baked at runtime from the colliders under the root (doors are left out of the bake)
 		var surface = root.gameObject.AddComponent<NavMeshSurface>();
@@ -710,6 +718,49 @@ public static class MuseumBuilder
 				"The Countess falls, and stays down. Cold air is breathing out of her empty frame.", exit, new[] { shatter });
 			boss.MoveRewardToLastKill = false;
 		}
+	}
+
+	// ---------------------------------------------------------------- music
+
+	// The MusicDirector starts on the gallery's track (the corridor shares it), and a MusicZone over each room
+	// crossfades to that room's track as the player walks in. The director fades out during every Encounter
+	private static void BuildMusic(Transform root)
+	{
+		var go = new GameObject("Music");
+		go.transform.SetParent(root, false);
+		var director = go.AddComponent<MusicDirector>();
+		director.StartTrack = LoadMusic(GalleryMusic);
+
+		CreateMusicZone(go.transform, "GalleryZone", new Vector3(0f, GalleryHeight * 0.5f, 0f), new Vector3(25f, GalleryHeight, 28.5f), director.StartTrack);
+		CreateMusicZone(go.transform, "WingZone", new Vector3(0f, DaisHeight + WingHeight * 0.5f, 20.25f), new Vector3(12f, WingHeight, 11f), LoadMusic(WingMusic));
+		CreateMusicZone(go.transform, "ArchiveZone", new Vector3(0f, DaisHeight + WingHeight * 0.5f, 32.6f), new Vector3(12f, WingHeight, 11.5f), LoadMusic(ArchiveMusic));
+	}
+
+	private static void CreateMusicZone(Transform parent, string name, Vector3 centre, Vector3 size, AudioClip track)
+	{
+		var go = new GameObject(name);
+		go.layer = IgnoreRaycastLayer;
+		go.transform.SetParent(parent, false);
+		go.transform.position = centre;
+		go.AddComponent<BoxCollider>().size = size;
+		// kinematic body so the trigger reliably fires against the CharacterController
+		var body = go.AddComponent<Rigidbody>();
+		body.isKinematic = true;
+		body.useGravity = false;
+		go.AddComponent<MusicZone>().Track = track;
+	}
+
+	// long tracks stream instead of sitting decoded in memory
+	private static AudioClip LoadMusic(string path)
+	{
+		var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+		if (clip == null)
+		{
+			Debug.LogWarning("[MuseumBuilder] Music not found: " + path);
+			return null;
+		}
+		PrototypeArenaBuilder.StreamClip(path);
+		return clip;
 	}
 
 	// ---------------------------------------------------------------- interactive pieces
