@@ -102,4 +102,4 @@ Built with third-party assets, each under its own licence (see each pack's folde
 - **Props:** CobraGames Assets, Dungeon, Feline Gargoyle, LoafbrrAssets Coffin and Flowers, Pegasus Studios Elegant Interior Decor, Picture Frames FREE, PolyOne Cobwebs Pack, _SVK, Old Grandfather Clock
 - **Skyboxes:** SkySeries Freebie
 - **Music:** MaxStack, *Whispers of Macabre*
-- **Sound effects** by the creators named in the file names under `Assets/Audio/`: alesiadavina, alex_jauk, creatorshome, dragon-studio, finntastico, freesound_community, litupsubway, placidplace, ribhavagrawal, soundreality, soundsforyou and tithuh, plus "Unseen Horrors" (chosic.com)
+- **Sound effects** by the creators named in the file names under `Assets/Audio/`: alesiadavina, alex_jauk, creatorshome, dragon-studio, finntastico, freesound_community, litupsubway, placidplace, ribhavagrawal, soundreality, soundsforyou and tithuh

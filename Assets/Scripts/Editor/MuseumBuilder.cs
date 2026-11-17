@@ -56,7 +56,7 @@ public static class MuseumBuilder
 	private const string KeyClip = "litupsubway-key-collect-sfx-522219.mp3";
 	private const string PageClip = "creatorshome-turn-a-page-336933.mp3";
 	private const string ClockTickClip = "clock-ticking-60-second-countdown-118231.mp3";
-	private const string ClockChimeClip = "alex_jauk-old-town-church-bells-ringing-181482.mp3";
+	private const string ClockChimeClip = "alex_jauk-old-town-church-bells-ringing-181482.wav";
 	private const string GlassBreakClip = "dragon-studio-glass-breaking-504033.mp3";
 	private const string RoomToneClip = "placidplace-haunted-house-ambience-21831.mp3";
 	private const string WindClip = "soundsforyou-wind-outside-sound-ambient-141989.mp3";
