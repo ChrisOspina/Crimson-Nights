@@ -66,7 +66,7 @@ public static class PrototypeArenaBuilder
 	private const string CountessClothSourcePath = VampireFolder + "Materials/M_Cloth Material.mat";
 	private const string CountessSkinPath = "Assets/Materials/Enemies/Countess_Skin.mat";
 	private const string CountessClothPath = "Assets/Materials/Enemies/Countess_Cloth.mat";
-	private const string CountessMusicPath = "Assets/ThirdParty/Audio/MaxStack/Whispers of Macabre/Audio/Music/WM Eternal Thirst A.wav";
+	private const string CountessMusicPath = "Assets/Audio/Music/WM Eternal Thirst A.wav";
 	private const string CountessShriekClipName = "alesiadavina-female-vampire-attack-shriek-dark-supernatural-sfx-552130.mp3";
 	private const string CountessBlinkClipName = "dragon-studio-whoosh-cinematic-376875.mp3";
 	private static readonly string[] ThrallShriekClipNames =
@@ -251,9 +251,21 @@ public static class PrototypeArenaBuilder
 	// optional: missing clips just leave the slot empty
 	internal static AudioClip LoadClip(string fileName)
 	{
-		var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/{fileName}");
-		if (clip == null) Debug.LogWarning($"[PrototypeArenaBuilder] Audio clip not found: {AudioFolder}/{fileName}");
+		string path = FindAudioPath(fileName);
+		var clip = path != null ? AssetDatabase.LoadAssetAtPath<AudioClip>(path) : null;
+		if (clip == null) Debug.LogWarning($"[PrototypeArenaBuilder] Audio clip not found under {AudioFolder}: {fileName}");
 		return clip;
+	}
+
+	// clips are sorted into subfolders (SFX/Weapons, Ambience, ...) for the mixer, so they're found by file name
+	internal static string FindAudioPath(string fileName)
+	{
+		foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { AudioFolder }))
+		{
+			string path = AssetDatabase.GUIDToAssetPath(guid);
+			if (System.IO.Path.GetFileName(path) == fileName) return path;
+		}
+		return null;
 	}
 
 	// the clips that exist, in order; missing ones are skipped (and warned about by LoadClip)

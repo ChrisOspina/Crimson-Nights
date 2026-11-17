@@ -64,7 +64,7 @@ public static class MuseumBuilder
 
 	// exploration music (MaxStack's Whispers of Macabre): the pack's quietest, most ambient tracks, one per area.
 	// The louder Eternal Thirst is the Countess's
-	private const string MusicFolder = "Assets/ThirdParty/Audio/MaxStack/Whispers of Macabre/Audio/Music/";
+	private const string MusicFolder = "Assets/Audio/Music/";
 	private const string GalleryMusic = MusicFolder + "WM Veil of Shadows A.wav";
 	private const string WingMusic = MusicFolder + "WM Abode of the Immortal A.wav";
 	private const string ArchiveMusic = MusicFolder + "WM Abode of the Immortal B.wav";
@@ -1108,7 +1108,9 @@ public static class MuseumBuilder
 
 	private static void ConfigureAudioImport(string fileName, bool stream, bool mono)
 	{
-		var importer = AssetImporter.GetAtPath($"{PrototypeArenaBuilder.AudioFolder}/{fileName}") as AudioImporter;
+		string path = PrototypeArenaBuilder.FindAudioPath(fileName);
+		if (path == null) return;
+		var importer = AssetImporter.GetAtPath(path) as AudioImporter;
 		if (importer == null) return;
 
 		AudioImporterSampleSettings settings = importer.defaultSampleSettings;
