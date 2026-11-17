@@ -2,12 +2,27 @@ using UnityEngine;
 
 // The one place that changes Time.timeScale. Times itself on unscaled time so the slow-down can't stretch itself,
 // eases back to normal speed at the end, and survives scene reloads so time is always restored.
+// Also owns pausing (PauseMenu): Paused holds time at zero on top of any slow-down, which waits out the pause.
 public static class SlowMotion
 {
 	private static Runner _runner;
 	private static float _defaultFixedDeltaTime = -1f;
+	private static float _scale = 1f;
+	private static bool _paused;
 
 	public static bool IsActive => _runner != null && _runner.Active;
+
+	public static bool Paused
+	{
+		get => _paused;
+		set
+		{
+			if (_paused == value) return;
+			if (_defaultFixedDeltaTime < 0f) _defaultFixedDeltaTime = Time.fixedDeltaTime;
+			_paused = value;
+			Apply(_scale);
+		}
+	}
 
 	// scale: target Time.timeScale; realDuration: seconds of real time before returning to normal
 	public static void Play(float scale, float realDuration)
@@ -31,7 +46,8 @@ public static class SlowMotion
 
 	private static void Apply(float scale)
 	{
-		Time.timeScale = scale;
+		_scale = scale;
+		Time.timeScale = _paused ? 0f : scale;
 		if (_defaultFixedDeltaTime > 0f) Time.fixedDeltaTime = _defaultFixedDeltaTime * scale;
 	}
 
@@ -62,6 +78,12 @@ public static class SlowMotion
 		private void Update()
 		{
 			if (!Active) return;
+			// the slow-down is timed in real time, so push its end back while the game is paused
+			if (_paused)
+			{
+				_endTime += Time.unscaledDeltaTime;
+				return;
+			}
 
 			float remaining = _endTime - Time.unscaledTime;
 			if (remaining <= 0f) StopNow();

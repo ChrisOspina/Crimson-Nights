@@ -87,6 +87,7 @@ public class MusicDirector : MonoBehaviour
 		source.loop = true;
 		source.spatialBlend = 0f;
 		source.volume = 0f;
+		source.ignoreListenerPause = true; // keeps playing under the pause menu
 		return source;
 	}
 }

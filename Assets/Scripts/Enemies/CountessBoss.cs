@@ -89,6 +89,7 @@ public class CountessBoss : MonoBehaviour
 		_music.playOnAwake = false;
 		_music.loop = true;
 		_music.spatialBlend = 0f;
+		_music.ignoreListenerPause = true; // keeps playing under the pause menu
 		_music.clip = Music;
 	}
 

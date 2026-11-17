@@ -245,6 +245,9 @@
         <mxCell id="m7" value="&lt;b&gt;LevelExit&lt;/b&gt; (Interactable) → &lt;b&gt;EndScreen&lt;/b&gt;&lt;br&gt;Countess's empty frame · PlayerControl.Freeze&lt;br&gt;fade → card: RunStats (time, deaths,&lt;br&gt;best style) · Play Again / Quit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1410" y="1100" width="230" height="64" as="geometry" />
         </mxCell>
+        <mxCell id="ui1" value="&lt;b&gt;PauseMenu&lt;/b&gt; (UI/, on the scene Canvas)&lt;br&gt;Esc / Start · SlowMotion.Paused · AudioListener.pause&lt;br&gt;PlayerInput.DeactivateInput · cursor free&lt;br&gt;Resume / Quit to Menu / Quit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="1180" width="230" height="64" as="geometry" />
+        </mxCell>
         <mxCell id="m7e1" value="reveals on clear" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;fontSize=10;dashed=1;" edge="1" parent="1" source="m4" target="m7">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">

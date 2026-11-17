@@ -30,6 +30,8 @@ Each area has its own music, which drops out when a fight starts. Still to come 
 | Dodge | Right mouse | South (A / ✕) |
 | Switch weapon | Q / mouse wheel | North (Y / △) |
 | Interact | E | East (B / ○) |
+| Pause | Esc | Start |
+| Mute | M | — |
 
 There's no jumping.
 
